@@ -1,0 +1,59 @@
+<!--settings.wxml-->
+<navigation-bar title="设置" back="{{false}}" color="black" background="#FFF"></navigation-bar>
+
+<view class="container">
+  <view class="user-card" wx:if="{{userInfo.avatarUrl}}">
+    <image class="user-avatar" src="{{userInfo.avatarUrl}}" mode="aspectFill"></image>
+    <view class="user-info">
+      <view class="user-name">{{userInfo.nickName || '未设置昵称'}}</view>
+      <view class="user-desc">点击下方按钮管理您的信息</view>
+    </view>
+  </view>
+
+  <view class="menu-list">
+    <view class="menu-item" bindtap="goToProfile">
+      <view class="menu-icon">👤</view>
+      <view class="menu-content">
+        <view class="menu-title">更改头像昵称</view>
+        <view class="menu-desc">管理您的个人信息</view>
+      </view>
+      <view class="menu-arrow">›</view>
+    </view>
+
+    <view class="menu-item" bindtap="goToStatistics">
+      <view class="menu-icon">📊</view>
+      <view class="menu-content">
+        <view class="menu-title">数据统计</view>
+        <view class="menu-desc">查看您的游戏数据</view>
+      </view>
+      <view class="menu-arrow">›</view>
+    </view>
+
+    <view class="menu-item" bindtap="goToHelp">
+      <view class="menu-icon">❓</view>
+      <view class="menu-content">
+        <view class="menu-title">使用说明</view>
+        <view class="menu-desc">了解如何使用小程序</view>
+      </view>
+      <view class="menu-arrow">›</view>
+    </view>
+
+    <view class="menu-item" bindtap="goToFeedback">
+      <view class="menu-icon">💬</view>
+      <view class="menu-content">
+        <view class="menu-title">建议与反馈</view>
+        <view class="menu-desc">告诉我们您的想法</view>
+      </view>
+      <view class="menu-arrow">›</view>
+    </view>
+
+    <button class="menu-item share-item" open-type="share">
+      <view class="menu-icon">📤</view>
+      <view class="menu-content">
+        <view class="menu-title">分享给其他好友</view>
+        <view class="menu-desc">邀请朋友一起使用</view>
+      </view>
+      <view class="menu-arrow">›</view>
+    </button>
+  </view>
+</view>

@@ -1,0 +1,339 @@
+/* room.wxss */
+page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f8f9fa;
+}
+
+.container {
+  flex: 1;
+  padding: 40rpx;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 400rpx;
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.room-info {
+  background: white;
+  border-radius: 16rpx;
+  padding: 40rpx;
+  margin-bottom: 40rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+}
+
+.room-header {
+  text-align: center;
+  margin-bottom: 40rpx;
+}
+
+.room-name {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10rpx;
+}
+
+.room-id {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.invite-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.qrcode-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.qrcode {
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 8rpx;
+  border: 2rpx solid #f0f0f0;
+}
+
+.qrcode-tip {
+  font-size: 20rpx;
+  color: #666;
+  margin-top: 10rpx;
+}
+
+.share-button {
+  width: 160rpx;
+  height: 80rpx;
+  background: linear-gradient(135deg, #1296db, #0e7bb8);
+  border-radius: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.share-button::after {
+  border: none;
+}
+
+.share-icon {
+  font-size: 24rpx;
+  margin-right: 8rpx;
+}
+
+.share-text {
+  font-size: 24rpx;
+  color: white;
+}
+
+.players-section {
+  background: white;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 30rpx 40rpx;
+  background: #f8f9fa;
+  border-bottom: 1rpx solid #e9ecef;
+}
+
+.title-text {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.player-count {
+  font-size: 24rpx;
+  color: #666;
+  background: #e9ecef;
+  padding: 8rpx 16rpx;
+  border-radius: 20rpx;
+}
+
+.players-table {
+  background: white;
+}
+
+.table-header {
+  display: flex;
+  background: #f8f9fa;
+  border-bottom: 2rpx solid #e9ecef;
+}
+
+.header-cell {
+  padding: 20rpx;
+  font-size: 24rpx;
+  font-weight: bold;
+  color: #666;
+  text-align: center;
+}
+
+.header-cell.player {
+  flex: 2;
+  text-align: left;
+}
+
+.header-cell.score {
+  flex: 1;
+}
+
+.header-cell.action {
+  flex: 1;
+}
+
+.table-row {
+  display: flex;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.table-cell {
+  padding: 20rpx;
+  display: flex;
+  align-items: center;
+}
+
+.player-cell {
+  flex: 2;
+}
+
+.player-avatar {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 50%;
+  margin-right: 20rpx;
+}
+
+.player-info {
+  flex: 1;
+}
+
+.player-name {
+  font-size: 28rpx;
+  color: #333;
+  margin-bottom: 4rpx;
+}
+
+.player-time {
+  font-size: 20rpx;
+  color: #999;
+}
+
+.score-cell {
+  flex: 1;
+  justify-content: center;
+}
+
+.score-value {
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+.action-cell {
+  flex: 1;
+  justify-content: center;
+}
+
+.transfer-button {
+  width: 80rpx;
+  height: 50rpx;
+  background: #1296db;
+  color: white;
+  border-radius: 25rpx;
+  font-size: 22rpx;
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.transfer-button[disabled] {
+  background: #ccc;
+  color: #999;
+}
+
+.transfer-button::after {
+  border: none;
+}
+
+/* 弹窗样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  width: 600rpx;
+  background: white;
+  border-radius: 16rpx;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 30rpx 40rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.modal-close {
+  font-size: 40rpx;
+  color: #999;
+  cursor: pointer;
+}
+
+.modal-body {
+  padding: 40rpx;
+}
+
+.input-group {
+  margin-bottom: 30rpx;
+}
+
+.input-label {
+  font-size: 28rpx;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.score-input {
+  width: 100%;
+  height: 80rpx;
+  border: 2rpx solid #e9ecef;
+  border-radius: 8rpx;
+  padding: 0 20rpx;
+  font-size: 28rpx;
+  background: white;
+}
+
+.current-score {
+  font-size: 24rpx;
+  color: #666;
+  text-align: center;
+}
+
+.modal-footer {
+  display: flex;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.modal-button {
+  flex: 1;
+  height: 100rpx;
+  border: none;
+  margin: 0;
+  padding: 0;
+  font-size: 28rpx;
+}
+
+.modal-button::after {
+  border: none;
+}
+
+.modal-button.cancel {
+  background: #f8f9fa;
+  color: #666;
+  border-right: 1rpx solid #f0f0f0;
+}
+
+.modal-button.confirm {
+  background: #1296db;
+  color: white;
+}

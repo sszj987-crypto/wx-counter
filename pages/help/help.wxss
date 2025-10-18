@@ -1,0 +1,117 @@
+/* help.wxss */
+page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f8f9fa;
+}
+
+.container {
+  flex: 1;
+  padding: 40rpx;
+}
+
+.welcome-section {
+  background: linear-gradient(135deg, #1296db, #0e7bb8);
+  border-radius: 16rpx;
+  padding: 40rpx;
+  text-align: center;
+  color: white;
+  margin-bottom: 40rpx;
+}
+
+.welcome-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  margin-bottom: 20rpx;
+}
+
+.welcome-desc {
+  font-size: 26rpx;
+  opacity: 0.9;
+  line-height: 1.5;
+}
+
+.help-list {
+  background: white;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+  margin-bottom: 40rpx;
+}
+
+.help-item {
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.help-item:last-child {
+  border-bottom: none;
+}
+
+.help-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 30rpx 40rpx;
+  transition: background-color 0.3s;
+}
+
+.help-item:active .help-header {
+  background-color: #f8f9fa;
+}
+
+.help-title {
+  font-size: 30rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.help-arrow {
+  font-size: 32rpx;
+  color: #999;
+  transition: transform 0.3s;
+}
+
+.help-arrow.expanded {
+  transform: rotate(90deg);
+}
+
+.help-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+.help-content.show {
+  max-height: 1000rpx;
+}
+
+.help-text {
+  display: block;
+  padding: 0 40rpx 30rpx 40rpx;
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.contact-section {
+  background: white;
+  border-radius: 16rpx;
+  padding: 40rpx;
+  text-align: center;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+}
+
+.contact-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.contact-desc {
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.5;
+}

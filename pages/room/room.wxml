@@ -1,0 +1,103 @@
+<!--room.wxml-->
+<navigation-bar title="多人计分" back="{{true}}" color="black" background="#FFF"></navigation-bar>
+
+<view class="container">
+  <!-- 加载状态 -->
+  <view class="loading" wx:if="{{isCreating}}">
+    <view class="loading-text">正在创建房间...</view>
+  </view>
+
+  <!-- 房间信息 -->
+  <view class="room-info" wx:if="{{roomData && !isCreating}}">
+    <view class="room-header">
+      <view class="room-name">{{roomData.roomName}}</view>
+      <view class="room-id">房间号: {{roomId}}</view>
+    </view>
+
+    <!-- 小程序码和邀请 -->
+    <view class="invite-section">
+      <view class="qrcode-container" wx:if="{{qrcodeUrl}}">
+        <image class="qrcode" src="{{qrcodeUrl}}" mode="aspectFit"></image>
+        <view class="qrcode-tip">扫码加入房间</view>
+      </view>
+      
+      <button class="share-button" open-type="share">
+        <view class="share-icon">📤</view>
+        <view class="share-text">邀请好友</view>
+      </button>
+    </view>
+  </view>
+
+  <!-- 玩家列表 -->
+  <view class="players-section" wx:if="{{roomData && !isCreating}}">
+    <view class="section-title">
+      <view class="title-text">玩家列表</view>
+      <view class="player-count">{{roomData.players.length}}人</view>
+    </view>
+
+    <view class="players-table">
+      <view class="table-header">
+        <view class="header-cell player">玩家</view>
+        <view class="header-cell score">得分</view>
+        <view class="header-cell action">操作</view>
+      </view>
+
+      <view class="table-body">
+        <view class="table-row" wx:for="{{roomData.players}}" wx:key="openId">
+          <view class="table-cell player-cell">
+            <image class="player-avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+            <view class="player-info">
+              <view class="player-name">{{item.nickName}}</view>
+              <view class="player-time">{{item.joinTime}}</view>
+            </view>
+          </view>
+          
+          <view class="table-cell score-cell">
+            <view class="score-value" style="color: {{item.score >= 0 ? '#52c41a' : '#ff4d4f'}}">
+              {{item.score}}
+            </view>
+          </view>
+          
+          <view class="table-cell action-cell">
+            <button class="transfer-button" 
+                    data-player="{{item}}" 
+                    bindtap="showTransferModal"
+                    disabled="{{item.openId === currentUserOpenId}}">
+              {{item.openId === currentUserOpenId ? '自己' : '给分'}}
+            </button>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 给分弹窗 -->
+<view class="modal-overlay" wx:if="{{transferModal.show}}" bindtap="hideTransferModal">
+  <view class="modal-content" catchtap="">
+    <view class="modal-header">
+      <view class="modal-title">给 {{transferModal.targetPlayer.nickName}} 加分</view>
+      <view class="modal-close" bindtap="hideTransferModal">×</view>
+    </view>
+    
+    <view class="modal-body">
+      <view class="input-group">
+        <view class="input-label">分数</view>
+        <input class="score-input" 
+               type="number" 
+               placeholder="请输入分数" 
+               value="{{transferModal.score}}"
+               bindinput="onScoreInput" />
+      </view>
+      
+      <view class="current-score">
+        您的当前分数: {{roomData.players[currentUserOpenId] ? roomData.players[currentUserOpenId].score : 0}}
+      </view>
+    </view>
+    
+    <view class="modal-footer">
+      <button class="modal-button cancel" bindtap="hideTransferModal">取消</button>
+      <button class="modal-button confirm" bindtap="confirmTransfer">确认</button>
+    </view>
+  </view>
+</view>

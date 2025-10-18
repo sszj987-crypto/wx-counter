@@ -1,0 +1,30 @@
+<!--help.wxml-->
+<navigation-bar title="使用说明" back="{{true}}" color="black" background="#FFF"></navigation-bar>
+
+<view class="container">
+  <view class="welcome-section">
+    <view class="welcome-title">欢迎使用多人计分小程序</view>
+    <view class="welcome-desc">简单易用的实时多人计分工具，让您的游戏更加精彩！</view>
+  </view>
+
+  <view class="help-list">
+    <view class="help-item" 
+          wx:for="{{helpItems}}" 
+          wx:key="title"
+          data-index="{{index}}"
+          bindtap="toggleHelpItem">
+      <view class="help-header">
+        <view class="help-title">{{item.title}}</view>
+        <view class="help-arrow {{item.expanded ? 'expanded' : ''}}">›</view>
+      </view>
+      <view class="help-content {{item.expanded ? 'show' : ''}}">
+        <text class="help-text">{{item.content}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="contact-section">
+    <view class="contact-title">遇到问题？</view>
+    <view class="contact-desc">如果您在使用过程中遇到任何问题，可以通过设置页面的"建议与反馈"功能联系我们。</view>
+  </view>
+</view>

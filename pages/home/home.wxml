@@ -1,0 +1,19 @@
+<!--home.wxml-->
+<navigation-bar title="多人计分" back="{{false}}" color="black" background="#FFF"></navigation-bar>
+
+<view class="container">
+  <view class="header">
+    <view class="welcome">欢迎使用多人计分</view>
+    <view class="subtitle">简单、快捷、实时同步</view>
+  </view>
+
+  <view class="main-content">
+    <button class="start-button" bindtap="startMultiPlayer" disabled="{{!hasUserInfo}}">
+      开始计分 - 多人操作
+    </button>
+  </view>
+
+  <view class="loading-tip" wx:if="{{!hasUserInfo}}">
+    <view class="loading-text">正在初始化用户信息...</view>
+  </view>
+</view>

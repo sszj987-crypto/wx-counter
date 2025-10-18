@@ -1,0 +1,62 @@
+<!--statistics.wxml-->
+<navigation-bar title="数据统计" back="{{true}}" color="black" background="#FFF"></navigation-bar>
+
+<view class="container">
+  <!-- 加载状态 -->
+  <view class="loading" wx:if="{{isLoading}}">
+    <view class="loading-text">正在加载数据...</view>
+  </view>
+
+  <!-- 统计卡片 -->
+  <view class="stats-section" wx:if="{{!isLoading}}">
+    <view class="stats-title">我的数据</view>
+    <view class="stats-grid">
+      <view class="stat-card">
+        <view class="stat-value">{{userStats.totalGames}}</view>
+        <view class="stat-label">总游戏次数</view>
+      </view>
+      <view class="stat-card">
+        <view class="stat-value">{{userStats.totalScore}}</view>
+        <view class="stat-label">累计得分</view>
+      </view>
+      <view class="stat-card">
+        <view class="stat-value">{{userStats.averageScore}}</view>
+        <view class="stat-label">平均得分</view>
+      </view>
+      <view class="stat-card">
+        <view class="stat-value">{{userStats.winRate}}%</view>
+        <view class="stat-label">胜率</view>
+      </view>
+      <view class="stat-card">
+        <view class="stat-value">{{userStats.bestScore}}</view>
+        <view class="stat-label">最高得分</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 最近游戏 -->
+  <view class="recent-section" wx:if="{{!isLoading && recentGames.length > 0}}">
+    <view class="section-title">最近游戏</view>
+    <view class="games-list">
+      <view class="game-item" wx:for="{{recentGames}}" wx:key="_id">
+        <view class="game-info">
+          <view class="game-name">{{item.roomName}}</view>
+          <view class="game-time">{{item.createTime}}</view>
+        </view>
+        <view class="game-score">
+          <view class="score-label">最终得分</view>
+          <view class="score-value" style="color: {{item.players[currentUserOpenId] && item.players[currentUserOpenId].score >= 0 ? '#52c41a' : '#ff4d4f'}}">
+            {{item.players[currentUserOpenId] ? item.players[currentUserOpenId].score : 0}}
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{!isLoading && recentGames.length === 0}}">
+    <view class="empty-icon">📊</view>
+    <view class="empty-text">暂无游戏记录</view>
+    <view class="empty-desc">开始您的第一场游戏吧！</view>
+  </view>
+</view>

@@ -1,0 +1,40 @@
+<!--feedback.wxml-->
+<navigation-bar title="建议与反馈" back="{{true}}" color="black" background="#FFF"></navigation-bar>
+
+<view class="container">
+  <view class="form-section">
+    <view class="form-title">我们很重视您的意见</view>
+    <view class="form-desc">请详细描述您的建议或问题</view>
+
+    <view class="form-item">
+      <view class="form-label">反馈内容</view>
+      <textarea class="content-textarea" 
+                placeholder="请详细描述您的建议或遇到的问题..."
+                value="{{feedbackContent}}"
+                bindinput="onContentInput"
+                maxlength="500"
+                show-confirm-bar="{{false}}"></textarea>
+      <view class="char-count">{{feedbackContent.length}}/500</view>
+    </view>
+
+    <view class="submit-section">
+      <button class="submit-button" 
+              bindtap="submitFeedback" 
+              disabled="{{isSubmitting}}">
+        {{isSubmitting ? '提交中...' : '提交反馈'}}
+      </button>
+    </view>
+  </view>
+
+  <view class="tips-section">
+    <view class="tips-title">反馈说明</view>
+    <view class="tips-list">
+      <view class="tip-item">• 我们会认真对待每一条反馈</view>
+      <view class="tip-item">• 功能建议会根据实际情况考虑实现</view>
+      <view class="tip-item">• 问题反馈会优先处理</view>
+      <view class="tip-item">• 我们会持续改进产品体验</view>
+    </view>
+  </view>
+</view>
+
+

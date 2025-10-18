@@ -1,0 +1,31 @@
+<!--profile.wxml-->
+<navigation-bar title="个人资料" back="{{true}}" color="black" background="#FFF"></navigation-bar>
+
+<view class="container">
+  <view class="profile-card">
+    <view class="avatar-section">
+      <view class="avatar-label">头像</view>
+      <button class="avatar-button" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+        <image class="avatar" src="{{userInfo.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+        <view class="avatar-tip">点击更换头像</view>
+      </button>
+    </view>
+
+    <view class="nickname-section">
+      <view class="nickname-label">昵称</view>
+      <input class="nickname-input" 
+             type="nickname" 
+             placeholder="请输入昵称" 
+             value="{{userInfo.nickName}}"
+             bindchange="onNicknameChange" />
+    </view>
+
+    <view class="save-section">
+      <button class="save-button" 
+              bindtap="saveUserInfo" 
+              disabled="{{isSaving || !hasChanges}}">
+        {{isSaving ? '保存中...' : '保存'}}
+      </button>
+    </view>
+  </view>
+</view>
