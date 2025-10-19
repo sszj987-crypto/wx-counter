@@ -36,7 +36,24 @@ Page({
       return
     }
 
-    // 尝试获取微信用户信息
+    // 先从数据库获取用户信息
+    try {
+      console.log('尝试从数据库获取用户信息')
+      const dbUserInfo = await this.getUserInfoFromDB()
+      if (dbUserInfo) {
+        console.log('从数据库获取到用户信息:', dbUserInfo)
+        app.globalData.userInfo = dbUserInfo
+        this.setData({
+          userInfo: dbUserInfo,
+          hasUserInfo: true
+        })
+        return
+      }
+    } catch (error) {
+      console.log('从数据库获取用户信息失败:', error)
+    }
+
+    // 如果数据库中没有用户信息，尝试获取微信用户信息
     try {
       console.log('尝试获取微信用户信息')
       const userInfo = await this.getWxUserInfo()
@@ -56,6 +73,28 @@ Page({
         userInfo: defaultUserInfo,
         hasUserInfo: true
       })
+    }
+  },
+
+  /**
+   * 从数据库获取用户信息
+   */
+  async getUserInfoFromDB() {
+    try {
+      const result = await wx.cloud.callFunction({
+        name: 'getUserInfo'
+      })
+      console.log('从数据库获取用户信息结果:', result)
+      if (result.result && result.result.success && result.result.userInfo) {
+        return {
+          nickName: result.result.userInfo.nickName || '玩家',
+          avatarUrl: result.result.userInfo.avatarUrl || '/images/default-avatar.png'
+        }
+      }
+      return null
+    } catch (error) {
+      console.error('从数据库获取用户信息失败:', error)
+      return null
     }
   },
 

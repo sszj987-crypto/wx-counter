@@ -214,15 +214,19 @@ page {
 
 .score-cell {
   justify-content: center;
+  padding: 20rpx;
 }
 
 .score-value {
   font-size: 32rpx;
   font-weight: bold;
+  text-align: center;
+  width: 100%;
 }
 
 .action-cell {
   justify-content: center;
+  padding: 20rpx;
 }
 
 .transfer-button {
