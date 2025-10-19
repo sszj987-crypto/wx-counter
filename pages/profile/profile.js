@@ -108,16 +108,40 @@ Page({
       const app = getApp()
       app.globalData.userInfo = userInfo
 
-      // 调用云函数更新用户信息
-      const result = await wx.cloud.callFunction({
-        name: 'updateUserInfo',
-        data: {
-          userInfo: userInfo
-        }
+      // 获取当前用户openId
+      const { result: userInfoResult } = await wx.cloud.callFunction({
+        name: 'getOpenId'
       })
+      const openId = userInfoResult.openId
+      console.log('当前用户openId:', openId)
 
-      if (!result.result || !result.result.success) {
-        throw new Error(result.result?.error || '更新用户信息失败')
+      // 直接从数据库更新用户信息
+      const userRef = wx.cloud.database().collection('users').doc(openId)
+      const userDoc = await userRef.get().catch(() => ({ data: null }))
+
+      if (userDoc.data) {
+        console.log('更新现有用户信息')
+        await userRef.update({
+          data: {
+            nickName: userInfo.nickName,
+            avatarUrl: userInfo.avatarUrl || '',
+            updateTime: new Date()
+          }
+        })
+      } else {
+        console.log('创建新用户信息')
+        await wx.cloud.database().collection('users').add({
+          data: {
+            _id: openId,
+            openId: openId,
+            nickName: userInfo.nickName,
+            avatarUrl: userInfo.avatarUrl || '',
+            totalGames: 0,
+            totalScore: 0,
+            createTime: new Date(),
+            updateTime: new Date()
+          }
+        })
       }
 
       wx.showToast({

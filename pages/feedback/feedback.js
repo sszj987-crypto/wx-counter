@@ -44,17 +44,22 @@ Page({
     this.setData({ isSubmitting: true })
 
     try {
-      // 调用云函数提交反馈
-      const result = await wx.cloud.callFunction({
-        name: 'submitFeedback',
+      // 获取当前用户openId
+      const { result: userInfoResult } = await wx.cloud.callFunction({
+        name: 'getOpenId'
+      })
+      const openId = userInfoResult.openId
+      console.log('当前用户openId:', openId)
+
+      // 直接从数据库提交反馈
+      await wx.cloud.database().collection('feedback').add({
         data: {
-          content: feedbackContent
+          content: feedbackContent,
+          userOpenId: openId,
+          createTime: new Date(),
+          status: 'pending' // pending, resolved, rejected
         }
       })
-
-      if (!result.result || !result.result.success) {
-        throw new Error(result.result?.error || '提交反馈失败')
-      }
 
       wx.showToast({
         title: '提交成功',

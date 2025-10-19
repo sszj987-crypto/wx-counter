@@ -79,33 +79,89 @@ Page({
         throw new Error('用户信息未初始化')
       }
 
-      console.log('调用创建房间云函数，用户信息:', this.data.userInfo)
-      const result = await wx.cloud.callFunction({
-        name: 'createRoom',
-        data: {
-          creatorInfo: this.data.userInfo
-        }
+      // 获取当前用户openId
+      const { result: userInfo } = await wx.cloud.callFunction({
+        name: 'getOpenId'
       })
+      const openId = userInfo.openId
+      console.log('当前用户openId:', openId)
 
-      console.log('创建房间结果:', result)
-
-      if (result.result && result.result.success) {
-        const { roomId, roomData } = result.result
-        console.log('房间创建成功，房间ID:', roomId, '房间数据:', roomData)
-        this.setData({
-          roomId: roomId,
-          roomData: roomData,
-          isCreating: false
-        })
-        
-        // 生成小程序码
-        this.generateQRCode()
-        
-        // 开始监听房间数据
-        this.watchRoomData()
-      } else {
-        throw new Error(result.result?.error || '创建房间失败')
+      // 生成唯一房间ID
+      const roomId = this.generateRoomId()
+      console.log('生成的房间ID:', roomId)
+      
+      // 生成房间编号（纯数字）
+      const roomNumber = Math.floor(Math.random() * 9000) + 1000
+      
+      // 房间数据
+      const roomData = {
+        _id: roomId,
+        roomName: `房间${roomNumber}`,
+        roomNumber: roomNumber,
+        creatorOpenId: openId,
+        createTime: new Date(),
+        players: [{
+          openId: openId,
+          nickName: this.data.userInfo.nickName || '房主',
+          avatarUrl: this.data.userInfo.avatarUrl || '',
+          score: 0,
+          joinTime: new Date()
+        }],
+        status: 'active',
+        totalRounds: 0
       }
+      console.log('房间数据:', roomData)
+
+      // 创建房间
+      console.log('开始创建房间到数据库')
+      await wx.cloud.database().collection('rooms').add({
+        data: roomData
+      })
+      console.log('房间创建成功')
+
+      // 更新用户信息
+      console.log('开始更新用户信息')
+      try {
+        await wx.cloud.database().collection('users').doc(openId).set({
+          data: {
+            openId: openId,
+            nickName: this.data.userInfo.nickName || '用户',
+            avatarUrl: this.data.userInfo.avatarUrl || '',
+            totalGames: 0,
+            totalScore: 0,
+            lastActiveTime: new Date()
+          }
+        })
+        console.log('用户信息更新成功')
+      } catch (error) {
+        console.log('用户信息更新失败，尝试创建新用户:', error)
+        // 如果用户不存在则创建
+        await wx.cloud.database().collection('users').add({
+          data: {
+            _id: openId,
+            openId: openId,
+            nickName: this.data.userInfo.nickName || '用户',
+            avatarUrl: this.data.userInfo.avatarUrl || '',
+            totalGames: 0,
+            totalScore: 0,
+            lastActiveTime: new Date()
+          }
+        })
+        console.log('新用户创建成功')
+      }
+
+      console.log('房间创建成功，房间ID:', roomId, '房间数据:', roomData)
+      this.setData({
+        roomId: roomId,
+        roomData: roomData,
+        isCreating: false
+      })
+      
+      // 生成小程序码
+      this.generateQRCode()
+      
+      // 开始监听房间数据
+      this.watchRoomData()
     } catch (error) {
       console.error('创建房间失败:', error)
       wx.showToast({
@@ -127,25 +183,98 @@ Page({
    */
   async joinRoom(roomId) {
     try {
-      const result = await wx.cloud.callFunction({
-        name: 'joinRoom',
-        data: {
+      // 获取当前用户openId
+      const { result: userInfoResult } = await wx.cloud.callFunction({
+        name: 'getOpenId'
+      })
+      const openId = userInfoResult.openId
+      console.log('当前用户openId:', openId)
+
+      // 查找房间
+      console.log('查找房间，房间ID:', roomId)
+      const roomResult = await wx.cloud.database().collection('rooms').doc(roomId).get()
+      
+      if (!roomResult.data) {
+        throw new Error('房间不存在')
+      }
+
+      const room = roomResult.data
+      console.log('找到房间:', room)
+
+      // 检查房间状态
+      if (room.status !== 'active') {
+        throw new Error('房间已关闭')
+      }
+
+      // 检查房间人数限制
+      if (room.players.length >= 30) {
+        throw new Error('房间已满（最多30人）')
+      }
+
+      // 检查用户是否已在房间中
+      const existingPlayer = room.players.find(player => player.openId === openId)
+      if (existingPlayer) {
+        console.log('用户已在房间中')
+        this.setData({
           roomId: roomId,
-          userInfo: this.data.userInfo
+          roomData: room
+        })
+        this.watchRoomData()
+        return
+      }
+
+      // 添加用户到房间
+      const newPlayer = {
+        openId: openId,
+        nickName: this.data.userInfo.nickName || '玩家',
+        avatarUrl: this.data.userInfo.avatarUrl || '',
+        score: 0,
+        joinTime: new Date()
+      }
+
+      await wx.cloud.database().collection('rooms').doc(roomId).update({
+        data: {
+          players: wx.cloud.database().command.push(newPlayer)
         }
       })
 
-      if (result.result.success) {
-        this.setData({
-          roomId: roomId,
-          roomData: result.result.roomData
+      // 更新用户信息
+      try {
+        await wx.cloud.database().collection('users').doc(openId).set({
+          data: {
+            openId: openId,
+            nickName: this.data.userInfo.nickName || '用户',
+            avatarUrl: this.data.userInfo.avatarUrl || '',
+            totalGames: 0,
+            totalScore: 0,
+            lastActiveTime: new Date()
+          }
         })
-        
-        // 开始监听房间数据
-        this.watchRoomData()
-      } else {
-        throw new Error(result.result.error)
+      } catch (error) {
+        console.log('用户信息更新失败，尝试创建新用户:', error)
+        await wx.cloud.database().collection('users').add({
+          data: {
+            _id: openId,
+            openId: openId,
+            nickName: this.data.userInfo.nickName || '用户',
+            avatarUrl: this.data.userInfo.avatarUrl || '',
+            totalGames: 0,
+            totalScore: 0,
+            lastActiveTime: new Date()
+          }
+        })
       }
+
+      // 获取更新后的房间数据
+      const updatedRoomResult = await wx.cloud.database().collection('rooms').doc(roomId).get()
+      
+      this.setData({
+        roomId: roomId,
+        roomData: updatedRoomResult.data
+      })
+      
+      // 开始监听房间数据
+      this.watchRoomData()
     } catch (error) {
       console.error('加入房间失败:', error)
       wx.showToast({
@@ -208,6 +337,7 @@ Page({
   showTransferModal(e) {
     const { player } = e.currentTarget.dataset
     
+    console.log("showTransferModal", player.openId, this.data.currentUserOpenId)
     // 不能给自己给分
     if (player.openId === this.data.currentUserOpenId) {
       wx.showToast({
@@ -299,6 +429,16 @@ Page({
       path: `/pages/room/room?roomId=${this.data.roomId}`,
       imageUrl: this.data.qrcodeUrl
     }
+  },
+
+  /**
+   * 生成房间ID
+   * @returns {string} 房间ID
+   */
+  generateRoomId() {
+    const timestamp = Date.now().toString(36)
+    const random = Math.random().toString(36).substr(2, 6)
+    return `${timestamp}${random}`.toUpperCase()
   },
 
   /**

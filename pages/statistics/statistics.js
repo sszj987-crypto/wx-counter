@@ -31,25 +31,61 @@ Page({
   async loadUserStatistics() {
     console.log('开始加载用户统计数据')
     try {
-      // 调用云函数获取统计数据
-      const result = await wx.cloud.callFunction({
-        name: 'getUserStatistics'
+      // 获取当前用户openId
+      const { result: userInfoResult } = await wx.cloud.callFunction({
+        name: 'getOpenId'
       })
-      
-      console.log('获取统计数据结果:', result)
-      
-      if (result.result && result.result.success) {
-        const { userStats, recentGames } = result.result
-        this.setData({
-          userStats: userStats,
-          recentGames: recentGames,
-          isLoading: false
-        })
-        console.log('统计数据加载完成')
-        return
-      } else {
-        throw new Error(result.result?.error || '获取统计数据失败')
+      const openId = userInfoResult.openId
+      console.log('当前用户openId:', openId)
+
+      // 获取用户基本信息
+      let userData = {}
+      try {
+        const userResult = await wx.cloud.database().collection('users').doc(openId).get()
+        userData = userResult.data || {}
+        console.log('用户基本信息:', userData)
+      } catch (userError) {
+        console.log('用户信息不存在，使用默认数据:', userError)
       }
+
+      // 获取用户游戏记录
+      let recordsData = []
+      try {
+        const recordsResult = await wx.cloud.database().collection('records')
+          .where({ fromPlayerOpenId: openId })
+          .orderBy('createTime', 'desc')
+          .limit(50)
+          .get()
+        recordsData = recordsResult.data || []
+        console.log('用户游戏记录数量:', recordsData.length)
+      } catch (recordsError) {
+        console.log('获取游戏记录失败:', recordsError)
+      }
+
+      // 获取用户参与的房间
+      let roomsData = []
+      try {
+        const roomsResult = await wx.cloud.database().collection('rooms')
+          .where({ players: wx.cloud.database().command.elemMatch({ openId: openId }) })
+          .orderBy('createTime', 'desc')
+          .limit(20)
+          .get()
+        roomsData = roomsResult.data || []
+        console.log('用户参与房间数量:', roomsData.length)
+      } catch (roomsError) {
+        console.log('获取房间记录失败:', roomsError)
+      }
+
+      // 计算统计数据
+      const userStats = this.calculateStatistics(userData, recordsData, roomsData, openId)
+      console.log('计算得到的统计数据:', userStats)
+
+      this.setData({
+        userStats: userStats,
+        recentGames: roomsData.slice(0, 10),
+        isLoading: false
+      })
+      console.log('统计数据加载完成')
 
     } catch (error) {
       console.error('加载统计数据失败:', error)

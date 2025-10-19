@@ -230,12 +230,12 @@ page {
 }
 
 .transfer-button {
-  width: 80rpx;
+  width: 50rpx;
   height: 50rpx;
   background: #1296db;
   color: white;
   border-radius: 25rpx;
-  font-size: 22rpx;
+  font-size: 30rpx;
   border: none;
   margin: 0;
   padding: 0;

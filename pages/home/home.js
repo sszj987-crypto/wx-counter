@@ -81,14 +81,21 @@ Page({
    */
   async getUserInfoFromDB() {
     try {
-      const result = await wx.cloud.callFunction({
-        name: 'getUserInfo'
+      // 获取当前用户openId
+      const { result: userInfo } = await wx.cloud.callFunction({
+        name: 'getOpenId'
       })
-      console.log('从数据库获取用户信息结果:', result)
-      if (result.result && result.result.success && result.result.userInfo) {
+      const openId = userInfo.openId
+      console.log('当前用户openId:', openId)
+
+      // 直接从数据库查询用户信息
+      const userResult = await wx.cloud.database().collection('users').doc(openId).get()
+      console.log('从数据库获取用户信息结果:', userResult)
+      
+      if (userResult.data) {
         return {
-          nickName: result.result.userInfo.nickName || '玩家',
-          avatarUrl: result.result.userInfo.avatarUrl || '/images/default-avatar.png'
+          nickName: userResult.data.nickName || '玩家',
+          avatarUrl: userResult.data.avatarUrl || '/images/default-avatar.png'
         }
       }
       return null
@@ -179,16 +186,48 @@ Page({
   async checkActiveRoom() {
     try {
       console.log('开始检查活跃房间')
-      // 调用云函数来检查活跃房间
-      const result = await wx.cloud.callFunction({
-        name: 'checkActiveRoom'
-      })
       
-      console.log('检查活跃房间结果:', result)
-      if (result.result && result.result.success) {
-        return result.result.room
+      // 获取当前用户openId
+      const { result: userInfoResult } = await wx.cloud.callFunction({
+        name: 'getOpenId'
+      })
+      const openId = userInfoResult.openId
+      console.log('当前用户openId:', openId)
+
+      // 直接从数据库查询活跃房间
+      const result = await wx.cloud.database().collection('rooms')
+        .where({
+          status: 'active',
+          players: wx.cloud.database().command.elemMatch({
+            openId: openId
+          })
+        })
+        .orderBy('createTime', 'desc')
+        .limit(1)
+        .get()
+
+      console.log('查询活跃房间结果:', result)
+
+      if (result.data && result.data.length > 0) {
+        const room = result.data[0]
+        const now = new Date()
+        const roomTime = new Date(room.createTime)
+        const hoursDiff = (now - roomTime) / (1000 * 60 * 60)
+
+        if (hoursDiff < 24) {
+          console.log('找到活跃房间:', room._id, '创建时间:', room.createTime)
+          return room
+        } else {
+          console.log('房间已超时，关闭房间:', room._id)
+          // 关闭超时房间
+          await wx.cloud.database().collection('rooms').doc(room._id).update({
+            data: { status: 'closed' }
+          })
+          return null
+        }
       }
       
+      console.log('未找到活跃房间')
       return null
     } catch (error) {
       console.error('检查活跃房间失败:', error)

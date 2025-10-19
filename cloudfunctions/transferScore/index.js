@@ -59,11 +59,6 @@ exports.main = async (event, context) => {
         throw new Error('不能给自己加分')
       }
 
-      // 检查发送方分数是否足够
-      if (room.players[fromPlayerIndex].score < score) {
-        throw new Error('您的分数不足')
-      }
-
       // 更新分数
       const newPlayers = [...room.players]
       newPlayers[fromPlayerIndex].score -= score
