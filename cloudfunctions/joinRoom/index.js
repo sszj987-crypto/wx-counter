@@ -3,11 +3,7 @@
  * 验证房间并添加用户到房间
  */
 const cloud = require('wx-server-sdk')
-
-cloud.init({
-  env: cloud.DYNAMIC_CURRENT_ENV
-})
-
+cloud.init()
 const db = cloud.database()
 
 /**
@@ -17,14 +13,18 @@ const db = cloud.database()
  * @param {Object} event.userInfo - 用户信息
  */
 exports.main = async (event, context) => {
+  console.log('加入房间云函数被调用，参数:', event)
   const { roomId, userInfo } = event
   const wxContext = cloud.getWXContext()
+  console.log('微信上下文:', { OPENID: wxContext.OPENID, APPID: wxContext.APPID })
   
   try {
     // 查找房间
+    console.log('查找房间，房间ID:', roomId)
     const roomResult = await db.collection('rooms').doc(roomId).get()
     
     if (!roomResult.data) {
+      console.log('房间不存在')
       return {
         success: false,
         error: '房间不存在'
@@ -32,9 +32,11 @@ exports.main = async (event, context) => {
     }
 
     const room = roomResult.data
+    console.log('找到房间:', room)
 
     // 检查房间状态
     if (room.status !== 'active') {
+      console.log('房间已关闭')
       return {
         success: false,
         error: '房间已关闭'
@@ -43,6 +45,7 @@ exports.main = async (event, context) => {
 
     // 检查房间人数限制
     if (room.players.length >= 30) {
+      console.log('房间已满，当前人数:', room.players.length)
       return {
         success: false,
         error: '房间已满（最多30人）'

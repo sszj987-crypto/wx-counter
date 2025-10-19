@@ -1,33 +1,10 @@
 {
   "pages": [
-    "pages/home/home",
-    "pages/settings/settings",
-    "pages/room/room",
-    "pages/profile/profile",
-    "pages/statistics/statistics",
-    "pages/help/help",
-    "pages/feedback/feedback"
+    "pages/index/index"
   ],
   "window": {
     "navigationBarTextStyle": "black",
-    "navigationStyle": "custom",
-    "backgroundColor": "#ffffff"
-  },
-  "tabBar": {
-    "color": "#666666",
-    "selectedColor": "#1296db",
-    "backgroundColor": "#ffffff",
-    "borderStyle": "white",
-    "list": [
-      {
-        "pagePath": "pages/home/home",
-        "text": "主页"
-      },
-      {
-        "pagePath": "pages/settings/settings",
-        "text": "设置"
-      }
-    ]
+    "navigationStyle": "custom"
   },
   "style": "v2",
   "renderer": "skyline",

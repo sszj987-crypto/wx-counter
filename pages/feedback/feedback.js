@@ -44,15 +44,17 @@ Page({
     this.setData({ isSubmitting: true })
 
     try {
-      // 提交到云数据库
-      await wx.cloud.database().collection('feedback').add({
+      // 调用云函数提交反馈
+      const result = await wx.cloud.callFunction({
+        name: 'submitFeedback',
         data: {
-          content: feedbackContent,
-          userOpenId: wx.getStorageSync('openid'),
-          createTime: new Date(),
-          status: 'pending'
+          content: feedbackContent
         }
       })
+
+      if (!result.result || !result.result.success) {
+        throw new Error(result.result?.error || '提交反馈失败')
+      }
 
       wx.showToast({
         title: '提交成功',
@@ -79,5 +81,7 @@ Page({
     }
   }
 })
+
+
 
 

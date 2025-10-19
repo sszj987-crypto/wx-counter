@@ -3,11 +3,7 @@
  * 处理玩家之间的分数转移
  */
 const cloud = require('wx-server-sdk')
-
-cloud.init({
-  env: cloud.DYNAMIC_CURRENT_ENV
-})
-
+cloud.init()
 const db = cloud.database()
 const _ = db.command
 

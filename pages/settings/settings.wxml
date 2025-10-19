@@ -47,7 +47,7 @@
       <view class="menu-arrow">›</view>
     </view>
 
-    <button class="menu-item share-item" open-type="share">
+    <button class="share-item" open-type="share">
       <view class="menu-icon">📤</view>
       <view class="menu-content">
         <view class="menu-title">分享给其他好友</view>

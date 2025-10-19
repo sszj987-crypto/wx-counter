@@ -26,12 +26,14 @@ Page({
    * 生命周期函数--监听页面加载
    */
   onLoad(options) {
+    console.log('房间页面加载，参数:', options)
     const { roomId, mode } = options
     const app = getApp()
     
     // 获取用户信息
     let userInfo = app.globalData.userInfo
     if (!userInfo) {
+      console.log('没有用户信息，生成默认信息')
       // 如果没有用户信息，生成默认信息
       userInfo = {
         nickName: '玩家' + Math.floor(Math.random() * 900) + 100,
@@ -39,17 +41,21 @@ Page({
       }
       app.globalData.userInfo = userInfo
     }
+    console.log('房间页面用户信息:', userInfo)
 
     this.setData({
       userInfo: userInfo,
-      currentUserOpenId: wx.getStorageSync('openid') || ''
+      currentUserOpenId: '' // 将在云函数中获取
     })
 
     if (mode === 'create') {
+      console.log('创建房间模式')
       this.createRoom()
     } else if (roomId) {
+      console.log('加入房间模式，房间ID:', roomId)
       this.joinRoom(roomId)
     } else {
+      console.log('房间信息错误')
       wx.showToast({
         title: '房间信息错误',
         icon: 'error'
@@ -64,6 +70,7 @@ Page({
    * 创建房间
    */
   async createRoom() {
+    console.log('开始创建房间')
     this.setData({ isCreating: true })
     
     try {
@@ -72,6 +79,7 @@ Page({
         throw new Error('用户信息未初始化')
       }
 
+      console.log('调用创建房间云函数，用户信息:', this.data.userInfo)
       const result = await wx.cloud.callFunction({
         name: 'createRoom',
         data: {
@@ -83,6 +91,7 @@ Page({
 
       if (result.result && result.result.success) {
         const { roomId, roomData } = result.result
+        console.log('房间创建成功，房间ID:', roomId, '房间数据:', roomData)
         this.setData({
           roomId: roomId,
           roomData: roomData,

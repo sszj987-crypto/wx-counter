@@ -29,49 +29,37 @@ Page({
    * 加载用户统计数据
    */
   async loadUserStatistics() {
+    console.log('开始加载用户统计数据')
     try {
-      const db = wx.cloud.database()
-      const openId = wx.getStorageSync('openid')
-
-      // 获取用户基本信息
-      const userResult = await db.collection('users').doc(openId).get()
-      const userData = userResult.data || {}
-
-      // 获取用户游戏记录
-      const recordsResult = await db.collection('records')
-        .where({
-          fromPlayerOpenId: openId
-        })
-        .orderBy('createTime', 'desc')
-        .limit(50)
-        .get()
-
-      // 获取用户参与的房间记录
-      const roomsResult = await db.collection('rooms')
-        .where({
-          players: db.command.elemMatch({
-            openId: openId
-          })
-        })
-        .orderBy('createTime', 'desc')
-        .limit(20)
-        .get()
-
-      // 计算统计数据
-      const stats = this.calculateStatistics(userData, recordsResult.data, roomsResult.data)
-
-      this.setData({
-        userStats: stats,
-        recentGames: roomsResult.data.slice(0, 10),
-        isLoading: false
+      // 调用云函数获取统计数据
+      const result = await wx.cloud.callFunction({
+        name: 'getUserStatistics'
       })
+      
+      console.log('获取统计数据结果:', result)
+      
+      if (result.result && result.result.success) {
+        const { userStats, recentGames } = result.result
+        this.setData({
+          userStats: userStats,
+          recentGames: recentGames,
+          isLoading: false
+        })
+        console.log('统计数据加载完成')
+        return
+      } else {
+        throw new Error(result.result?.error || '获取统计数据失败')
+      }
 
     } catch (error) {
       console.error('加载统计数据失败:', error)
-      wx.showToast({
-        title: '加载数据失败',
-        icon: 'error'
-      })
+      // 只有在真正出错时才显示错误提示，而不是没有数据时
+      if (error.message && !error.message.includes('not found')) {
+        wx.showToast({
+          title: '加载数据失败',
+          icon: 'error'
+        })
+      }
       this.setData({ isLoading: false })
     }
   },
@@ -79,7 +67,9 @@ Page({
   /**
    * 计算统计数据
    */
-  calculateStatistics(userData, records, rooms) {
+  calculateStatistics(userData, records, rooms, currentUserOpenId) {
+    console.log('开始计算统计数据，参数:', { userData, records, rooms, currentUserOpenId })
+    
     const totalGames = rooms.length
     const totalScore = userData.totalScore || 0
     const averageScore = totalGames > 0 ? Math.round(totalScore / totalGames) : 0
@@ -87,7 +77,7 @@ Page({
     // 计算胜率（得分最高的次数 / 总游戏次数）
     let winCount = 0
     rooms.forEach(room => {
-      const userPlayer = room.players.find(p => p.openId === wx.getStorageSync('openid'))
+      const userPlayer = room.players.find(p => p.openId === currentUserOpenId)
       if (userPlayer) {
         const maxScore = Math.max(...room.players.map(p => p.score))
         if (userPlayer.score === maxScore && maxScore > 0) {
@@ -100,19 +90,22 @@ Page({
     // 计算最高分
     let bestScore = 0
     rooms.forEach(room => {
-      const userPlayer = room.players.find(p => p.openId === wx.getStorageSync('openid'))
+      const userPlayer = room.players.find(p => p.openId === currentUserOpenId)
       if (userPlayer && userPlayer.score > bestScore) {
         bestScore = userPlayer.score
       }
     })
 
-    return {
+    const result = {
       totalGames,
       totalScore,
       averageScore,
       winRate,
       bestScore
     }
+    
+    console.log('统计数据计算结果:', result)
+    return result
   },
 
   /**

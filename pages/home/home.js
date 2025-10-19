@@ -15,6 +15,7 @@ Page({
    * 生命周期函数--监听页面加载
    */
   onLoad(options) {
+    console.log('主页面加载，参数:', options)
     this.initUserInfo()
   },
 
@@ -22,10 +23,12 @@ Page({
    * 初始化用户信息
    */
   async initUserInfo() {
+    console.log('开始初始化用户信息')
     const app = getApp()
     
     // 检查是否已有用户信息
     if (app.globalData.userInfo) {
+      console.log('使用已存在的用户信息:', app.globalData.userInfo)
       this.setData({
         userInfo: app.globalData.userInfo,
         hasUserInfo: true
@@ -35,7 +38,9 @@ Page({
 
     // 尝试获取微信用户信息
     try {
+      console.log('尝试获取微信用户信息')
       const userInfo = await this.getWxUserInfo()
+      console.log('获取到微信用户信息:', userInfo)
       app.globalData.userInfo = userInfo
       this.setData({
         userInfo: userInfo,
@@ -45,6 +50,7 @@ Page({
       console.error('获取用户信息失败:', error)
       // 使用默认用户信息
       const defaultUserInfo = this.generateDefaultUserInfo()
+      console.log('使用默认用户信息:', defaultUserInfo)
       app.globalData.userInfo = defaultUserInfo
       this.setData({
         userInfo: defaultUserInfo,
@@ -94,8 +100,10 @@ Page({
   /**
    * 开始多人计分
    */
-  startMultiPlayer() {
+  async startMultiPlayer() {
+    console.log('点击开始多人计分按钮')
     if (!this.data.hasUserInfo) {
+      console.log('用户信息未初始化，显示提示')
       wx.showToast({
         title: '正在初始化用户信息...',
         icon: 'loading'
@@ -103,9 +111,50 @@ Page({
       return
     }
 
-    wx.navigateTo({
-      url: '/pages/room/room?mode=create'
-    })
+    try {
+      // 检查是否有活跃的房间
+      const activeRoom = await this.checkActiveRoom()
+      if (activeRoom) {
+        console.log('找到活跃房间，直接进入:', activeRoom._id)
+        wx.navigateTo({
+          url: `/pages/room/room?roomId=${activeRoom._id}`
+        })
+      } else {
+        console.log('没有活跃房间，创建新房间')
+        wx.navigateTo({
+          url: '/pages/room/room?mode=create'
+        })
+      }
+    } catch (error) {
+      console.error('检查房间状态失败:', error)
+      // 出错时默认创建新房间
+      wx.navigateTo({
+        url: '/pages/room/room?mode=create'
+      })
+    }
+  },
+
+  /**
+   * 检查是否有活跃的房间
+   */
+  async checkActiveRoom() {
+    try {
+      console.log('开始检查活跃房间')
+      // 调用云函数来检查活跃房间
+      const result = await wx.cloud.callFunction({
+        name: 'checkActiveRoom'
+      })
+      
+      console.log('检查活跃房间结果:', result)
+      if (result.result && result.result.success) {
+        return result.result.room
+      }
+      
+      return null
+    } catch (error) {
+      console.error('检查活跃房间失败:', error)
+      return null
+    }
   },
 
   /**

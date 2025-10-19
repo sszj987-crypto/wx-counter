@@ -11,7 +11,6 @@
   <view class="room-info" wx:if="{{roomData && !isCreating}}">
     <view class="room-header">
       <view class="room-name">{{roomData.roomName}}</view>
-      <view class="room-id">房间号: {{roomId}}</view>
     </view>
 
     <!-- 小程序码和邀请 -->
@@ -48,7 +47,6 @@
             <image class="player-avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
             <view class="player-info">
               <view class="player-name">{{item.nickName}}</view>
-              <view class="player-time">{{item.joinTime}}</view>
             </view>
           </view>
           

@@ -40,12 +40,6 @@ page {
   font-size: 36rpx;
   font-weight: bold;
   color: #333;
-  margin-bottom: 10rpx;
-}
-
-.room-id {
-  font-size: 24rpx;
-  color: #666;
 }
 
 .invite-section {
@@ -135,7 +129,8 @@ page {
 }
 
 .table-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
   background: #f8f9fa;
   border-bottom: 2rpx solid #e9ecef;
 }
@@ -145,24 +140,37 @@ page {
   font-size: 24rpx;
   font-weight: bold;
   color: #666;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  position: relative;
 }
 
 .header-cell.player {
-  flex: 2;
-  text-align: left;
+  justify-content: flex-start;
+  position: relative;
+}
+
+.header-cell.player::before {
+  content: '';
+  width: 60rpx;
+  height: 60rpx;
+  margin-right: 20rpx;
+  display: inline-block;
 }
 
 .header-cell.score {
-  flex: 1;
+  justify-content: center;
 }
 
 .header-cell.action {
-  flex: 1;
+  justify-content: center;
 }
 
 .table-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
   border-bottom: 1rpx solid #f0f0f0;
 }
 
@@ -174,10 +182,13 @@ page {
   padding: 20rpx;
   display: flex;
   align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 .player-cell {
-  flex: 2;
+  justify-content: flex-start;
+  padding-left: 20rpx;
 }
 
 .player-avatar {
@@ -185,25 +196,23 @@ page {
   height: 60rpx;
   border-radius: 50%;
   margin-right: 20rpx;
+  flex-shrink: 0;
 }
 
 .player-info {
   flex: 1;
+  min-width: 0;
 }
 
 .player-name {
   font-size: 28rpx;
   color: #333;
-  margin-bottom: 4rpx;
-}
-
-.player-time {
-  font-size: 20rpx;
-  color: #999;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .score-cell {
-  flex: 1;
   justify-content: center;
 }
 
@@ -213,7 +222,6 @@ page {
 }
 
 .action-cell {
-  flex: 1;
   justify-content: center;
 }
 
@@ -227,6 +235,9 @@ page {
   border: none;
   margin: 0;
   padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .transfer-button[disabled] {

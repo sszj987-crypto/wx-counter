@@ -3,11 +3,7 @@
  * 用于房间分享
  */
 const cloud = require('wx-server-sdk')
-
-cloud.init({
-  env: cloud.DYNAMIC_CURRENT_ENV
-})
-
+cloud.init()
 /**
  * 生成小程序码
  * @param {Object} event - 事件参数
