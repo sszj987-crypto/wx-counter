@@ -1,6 +1,6 @@
 /**
  * 主页面逻辑
- * 提供多人计分入口
+ * 提供可乐计分器入口
  */
 Page({
   /**
@@ -144,10 +144,10 @@ Page({
   },
 
   /**
-   * 开始多人计分
+   * 开始可乐计分器
    */
   async startMultiPlayer() {
-    console.log('点击开始多人计分按钮')
+    console.log('点击开始可乐计分器按钮')
     if (!this.data.hasUserInfo) {
       console.log('用户信息未初始化，显示提示')
       wx.showToast({
@@ -240,7 +240,7 @@ Page({
    */
   onShareAppMessage() {
     return {
-      title: '多人计分小程序',
+      title: '可乐计分器小程序',
       path: '/pages/home/home'
     }
   }

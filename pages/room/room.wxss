@@ -128,23 +128,21 @@ page {
   background: white;
 }
 
-.table-header {
+/* 保证表头和表格主体的列宽一致 */
+.table-header,
+.table-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  background: #f8f9fa;
-  border-bottom: 2rpx solid #e9ecef;
+  grid-template-columns: 33% 33% 33%;  /* 使用百分比代替 fr，确保列宽相等 */
+  border-bottom: 1rpx solid #f0f0f0;
 }
 
-.header-cell {
-  padding: 20rpx;
-  font-size: 24rpx;
-  font-weight: bold;
-  color: #666;
+/* 保证表头和表格主体的内边距一致 */
+.header-cell, .table-cell {
+  padding: 20rpx;  /* 保证所有单元格有相同的内边距 */
   display: flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  position: relative;
 }
 
 .header-cell.player {
@@ -168,25 +166,11 @@ page {
   justify-content: center;
 }
 
-.table-row {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  border-bottom: 1rpx solid #f0f0f0;
-}
-
 .table-row:last-child {
   border-bottom: none;
 }
 
-.table-cell {
-  padding: 20rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-}
-
-.player-cell {
+.table-cell.player-cell {
   justify-content: flex-start;
   padding-left: 20rpx;
 }
@@ -212,9 +196,10 @@ page {
   text-overflow: ellipsis;
 }
 
-.score-cell {
-  justify-content: center;
-  padding: 20rpx;
+.table-cell.score-cell,
+.table-cell.action-cell {
+  padding-left: 20rpx;
+  padding-right: 20rpx;  /* 确保操作列与得分列间距一致 */
 }
 
 .score-value {
@@ -224,21 +209,15 @@ page {
   width: 100%;
 }
 
-.action-cell {
-  justify-content: center;
-  padding: 20rpx;
-}
-
+/* 为操作列的按钮添加适当的宽度和样式 */
 .transfer-button {
-  width: 50rpx;
+  width: 80rpx;  /* 调整按钮宽度，确保按钮不超过列宽 */
   height: 50rpx;
   background: #1296db;
   color: white;
   border-radius: 25rpx;
   font-size: 30rpx;
   border: none;
-  margin: 0;
-  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;

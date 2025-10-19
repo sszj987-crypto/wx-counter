@@ -3,8 +3,8 @@
 
 <view class="container">
   <view class="welcome-section">
-    <view class="welcome-title">欢迎使用多人计分小程序</view>
-    <view class="welcome-desc">简单易用的实时多人计分工具，让您的游戏更加精彩！</view>
+    <view class="welcome-title">欢迎使用可乐计分器小程序</view>
+    <view class="welcome-desc">简单易用的实时可乐计分器工具，让您的游戏更加精彩！</view>
   </view>
 
   <view class="help-list">

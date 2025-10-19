@@ -1,5 +1,5 @@
 <!--room.wxml-->
-<navigation-bar title="多人计分" back="{{true}}" color="black" background="#FFF"></navigation-bar>
+<navigation-bar title="可乐计分器" back="{{true}}" color="black" background="#FFF"></navigation-bar>
 
 <view class="container">
   <!-- 加载状态 -->

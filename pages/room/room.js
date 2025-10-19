@@ -1,5 +1,5 @@
 /**
- * 多人计分房间页面
+ * 可乐计分器房间页面
  * 支持实时同步、给分功能
  */
 const db = wx.cloud.database()
@@ -425,7 +425,7 @@ Page({
    */
   onShareAppMessage() {
     return {
-      title: `房间 ${this.data.roomData?.roomName || this.data.roomId} - 多人计分`,
+      title: `房间 ${this.data.roomData?.roomName || this.data.roomId} - 可乐计分器`,
       path: `/pages/room/room?roomId=${this.data.roomId}`,
       imageUrl: this.data.qrcodeUrl
     }
