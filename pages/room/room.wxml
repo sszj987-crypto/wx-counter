@@ -89,7 +89,7 @@
       </view>
       
       <view class="current-score">
-        您的当前分数: {{roomData.players[currentUserOpenId] ? roomData.players[currentUserOpenId].score : 0}}
+        您的当前分数: {{getCurrentUserScore()}}
       </view>
     </view>
     

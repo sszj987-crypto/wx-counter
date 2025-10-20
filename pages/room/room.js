@@ -452,6 +452,22 @@ Page({
   },
 
   /**
+   * 获取当前用户的分数
+   */
+  getCurrentUserScore() {
+    if (!this.data.roomData || !this.data.roomData.players || !this.data.currentUserOpenId) {
+      return 0;
+    }
+    
+    // 遍历玩家数组查找当前用户
+    const currentPlayer = this.data.roomData.players.find(
+      player => player.openId === this.data.currentUserOpenId
+    );
+    
+    return currentPlayer ? currentPlayer.score : 0;
+  },
+  
+  /**
    * 生命周期函数--监听页面卸载
    */
   onUnload() {
