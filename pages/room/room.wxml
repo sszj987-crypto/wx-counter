@@ -15,15 +15,24 @@
 
     <!-- 小程序码和邀请 -->
     <view class="invite-section">
-      <view class="qrcode-container" wx:if="{{qrcodeUrl}}">
-        <image class="qrcode" src="{{qrcodeUrl}}" mode="aspectFit"></image>
-        <view class="qrcode-tip">扫码加入房间</view>
-      </view>
-      
       <button class="share-button" open-type="share">
         <view class="share-icon">📤</view>
         <view class="share-text">邀请好友</view>
       </button>
+      
+      <button class="qrcode-button" bindtap="showQRCodeModal">
+        <view class="qrcode-icon">🔳</view>
+        <view class="qrcode-text">查看二维码</view>
+      </button>
+      
+      <view class="tea-service-switch">
+        <text class="switch-label">台位/茶水</text>
+        <switch 
+          checked="{{isTeaServiceEnabled}}" 
+          bindchange="toggleTeaService"
+          type="switch"
+        />
+      </view>
     </view>
   </view>
 
@@ -72,20 +81,15 @@
   <!-- 结算房间弹窗 -->
   <view class="modal-overlay" wx:if="{{settlementModal.show}}" bindtap="hideSettlementModal">
     <view class="modal-content" catchtap="">
-      <view class="modal-header">
-        <view class="modal-title">得分跟倍率相乘计算为最终得分</view>
-        <view class="modal-close" bindtap="hideSettlementModal">×</view>
-      </view>
-      
-      <view style="padding: 30rpx;">
-        <text style="display: block; margin-bottom: 20rpx;">输入计算倍率：</text>
+      <view style="padding: 40rpx 30rpx 30rpx; text-align: center;">
+        <text style="display: block; font-size: 36rpx; font-weight: bold; margin-bottom: 30rpx;">输入计算倍率</text>
         <input 
           type="number" 
           placeholder="1" 
           value="{{settlementModal.rate}}"
           bindinput="onRateInput" 
           focus="{{settlementModal.show}}"
-          style="width: calc(100% - 40rpx); height: 80rpx; border: 1rpx solid #ddd; border-radius: 8rpx; padding: 0 20rpx; font-size: 32rpx;"
+          style="width: calc(100% - 40rpx); height: 80rpx; border: 1rpx solid #ddd; border-radius: 8rpx; padding: 0 20rpx; font-size: 32rpx; margin: 0 auto;"
           confirm-type="done"
           maxlength="5"/>
       </view>
@@ -133,6 +137,21 @@
     <view class="modal-footer">
       <button class="modal-button cancel" bindtap="hideTransferModal">取消</button>
       <button class="modal-button confirm" bindtap="confirmTransfer">确认</button>
+    </view>
+  </view>
+</view>
+
+<!-- 二维码弹窗 -->
+<view class="modal-overlay" wx:if="{{qrcodeModal.show}}" bindtap="hideQRCodeModal">
+  <view class="modal-content qrcode-modal" catchtap="">
+    <view class="modal-header">
+      <view class="modal-title">扫码加入房间</view>
+      <view class="modal-close" bindtap="hideQRCodeModal">×</view>
+    </view>
+    
+    <view class="qrcode-display">
+      <image class="large-qrcode" src="{{qrcodeUrl}}" mode="aspectFit"></image>
+      <view class="qrcode-instruction">请使用微信扫描上方二维码加入房间</view>
     </view>
   </view>
 </view>

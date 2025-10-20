@@ -2,6 +2,7 @@
 <navigation-bar title="房间结算" back="{{true}}" color="black" background="#FFF"></navigation-bar>
 
 <view class="container">
+  
   <!-- 房间信息 -->
   <view class="room-info">
     <view class="room-name">{{roomName}}</view>

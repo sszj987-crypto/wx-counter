@@ -1,7 +1,7 @@
 /* settlement.wxss */
 .container {
-  padding: 20rpx;
-  background-color: #f5f5f5;
+  padding: 30rpx;
+  background: #f8f8f8;
   min-height: 100vh;
 }
 

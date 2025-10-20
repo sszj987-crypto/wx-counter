@@ -23,7 +23,12 @@ Page({
     settlementModal: {
       show: false,
       rate: '1'
-    }
+    },
+    qrcodeModal: {
+      show: false
+    },
+    isTeaServiceEnabled: false,
+    teaServicePlayerId: null
   },
 
   /**
@@ -167,6 +172,12 @@ Page({
       })
       
       // 生成小程序码
+      this.generateQRCode().then(() => {
+        // 自动显示二维码弹窗
+        this.showQRCodeModal()
+      })
+      
+      // 生成小程序码（加入房间时不自动显示弹窗）
       this.generateQRCode()
       
       // 开始监听房间数据
@@ -320,6 +331,82 @@ Page({
       }
     } catch (error) {
       console.error('生成小程序码失败:', error)
+    }
+  },
+
+  /**
+   * 显示二维码弹窗
+   */
+  showQRCodeModal() {
+    // 确保二维码已生成
+    if (!this.data.qrcodeUrl) {
+      this.generateQRCode()
+    }
+    this.setData({
+      'qrcodeModal.show': true
+    })
+  },
+
+  /**
+   * 隐藏二维码弹窗
+   */
+  hideQRCodeModal() {
+    this.setData({
+      'qrcodeModal.show': false
+    })
+  },
+
+  /**
+   * 切换台位/茶水开关
+   */
+  async toggleTeaService() {
+    try {
+      const newState = !this.data.isTeaServiceEnabled
+      
+      if (newState) {
+        // 打开开关，添加台位/茶水玩家
+        const teaServicePlayer = {
+          nickName: '台位/茶水',
+          avatarUrl: '/images/default-avatar.png',
+          openId: 'tea_service_' + Date.now(),
+          score: 0
+        }
+        
+        const players = [...this.data.roomData.players, teaServicePlayer]
+        
+        await db.collection('rooms').doc(this.data.roomId).update({
+          data: {
+            players: players
+          }
+        })
+        
+        this.setData({
+          isTeaServiceEnabled: true,
+          teaServicePlayerId: teaServicePlayer.openId
+        })
+      } else {
+        // 关闭开关，移除台位/茶水玩家
+        const players = this.data.roomData.players.filter(
+          player => player.openId !== this.data.teaServicePlayerId
+        )
+        
+        await db.collection('rooms').doc(this.data.roomId).update({
+          data: {
+            players: players
+          }
+        })
+        
+        this.setData({
+          isTeaServiceEnabled: false,
+          teaServicePlayerId: null
+        })
+      }
+    } catch (error) {
+      console.error('切换台位/茶水开关失败:', error)
+      wx.showToast({
+        title: '操作失败',
+        icon: 'error'
+      })
     }
   },
 

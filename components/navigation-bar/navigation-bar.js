@@ -91,11 +91,20 @@ Component({
     },
     back() {
       const data = this.data
-      if (data.delta) {
-        wx.navigateBack({
-          delta: data.delta
+      // 获取当前页面路径
+      const pages = getCurrentPages()
+      const currentPage = pages[pages.length - 1]
+      const pagePath = currentPage.route
+      
+      // 在结算页面时，跳转到主页而不是返回
+      if (pagePath === 'pages/settlement/settlement') {
+        wx.switchTab({
+          url: '/pages/home/home'
         })
+      } else if (data.delta) {
+        wx.navigateBack({ delta: data.delta })
       }
+      
       this.triggerEvent('back', { delta: data.delta }, {})
     }
   },
