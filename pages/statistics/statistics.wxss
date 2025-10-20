@@ -8,7 +8,8 @@ page {
 
 .container {
   flex: 1;
-  padding: 40rpx;
+  padding: 20rpx 30rpx; /* 减小padding以减少两侧空白 */
+  box-sizing: border-box;
 }
 
 .loading {
@@ -41,16 +42,28 @@ page {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 30rpx;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20rpx;
+  width: 100%;
+  box-sizing: border-box;
+  justify-items: center;
+  justify-content: center;
 }
 
 .stat-card {
   background: linear-gradient(135deg, #1296db, #0e7bb8);
   border-radius: 16rpx;
-  padding: 30rpx;
+  padding: 25rpx 20rpx;
   text-align: center;
   color: white;
+  width: 100%;
+  min-height: 140rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+  margin: 0 auto;
+  max-width: 340rpx;
 }
 
 .stat-value {

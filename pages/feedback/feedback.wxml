@@ -1,20 +1,25 @@
 <!--feedback.wxml-->
 <navigation-bar title="建议与反馈" back="{{true}}" color="black" background="#FFF"></navigation-bar>
 
-<view class="container">
+<view class="page-container">
   <view class="form-section">
-    <view class="form-title">我们很重视您的意见</view>
-    <view class="form-desc">请详细描述您的建议或问题</view>
+    <view class="form-header">
+      <view class="form-title">我们很重视您的意见</view>
+      <view class="form-desc">请详细描述您的建议或问题</view>
+    </view>
 
     <view class="form-item">
       <view class="form-label">反馈内容</view>
-      <textarea class="content-textarea" 
-                placeholder="请详细描述您的建议或遇到的问题..."
-                value="{{feedbackContent}}"
-                bindinput="onContentInput"
-                maxlength="500"
-                show-confirm-bar="{{false}}"></textarea>
-      <view class="char-count">{{feedbackContent.length}}/500</view>
+      <view class="textarea-container">
+        <textarea class="content-textarea" 
+                  placeholder="请详细描述您的建议或遇到的问题..."
+                  value="{{feedbackContent}}"
+                  bindinput="onContentInput"
+                  maxlength="500"
+                  show-confirm-bar="{{false}}"
+                  auto-height></textarea>
+        <view class="char-count">{{feedbackContent.length}}/500</view>
+      </view>
     </view>
 
     <view class="submit-section">
@@ -27,6 +32,7 @@
   </view>
 
   <view class="tips-section">
+    <view class="section-divider"></view>
     <view class="tips-title">反馈说明</view>
     <view class="tips-list">
       <view class="tip-item">• 我们会认真对待每一条反馈</view>
@@ -34,6 +40,10 @@
       <view class="tip-item">• 问题反馈会优先处理</view>
       <view class="tip-item">• 我们会持续改进产品体验</view>
     </view>
+  </view>
+  
+  <view class="footer">
+    <text class="footer-text">感谢您的反馈，我们将不断改进！</text>
   </view>
 </view>
 

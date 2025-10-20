@@ -82,7 +82,7 @@ Page({
 
       this.setData({
         userStats: userStats,
-        recentGames: roomsData.slice(0, 10),
+        recentGames: roomsData.slice(0, 3), // 最多只显示3个最近游戏
         isLoading: false
       })
       console.log('统计数据加载完成')

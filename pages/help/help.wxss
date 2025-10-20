@@ -84,6 +84,7 @@ page {
 
 .help-content.show {
   max-height: 1000rpx;
+  overflow: hidden;
 }
 
 .help-text {
