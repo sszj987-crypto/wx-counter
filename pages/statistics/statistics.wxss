@@ -50,7 +50,7 @@ page {
 }
 
 .stat-card {
-  background: linear-gradient(135deg, #1296db, #0e7bb8);
+  background: linear-gradient(135deg, #28a745, #1e7e34);
   border-radius: 12rpx;
   padding: 15rpx 10rpx;
   text-align: center;

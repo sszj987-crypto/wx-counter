@@ -87,7 +87,7 @@ page {
 }
 
 .share-button {
-  background: linear-gradient(135deg, #1296db, #0e7bb8);
+  background: linear-gradient(135deg, #28a745, #1e7e34);
 }
 
 .qrcode-button {
@@ -249,7 +249,7 @@ page {
   width: 100%;
   max-width: 120rpx;
   height: 50rpx;
-  background: #1296db;
+  background: #28a745;
   color: white;
   border-radius: 25rpx;
   font-size: 28rpx;
@@ -341,7 +341,7 @@ page {
 }
 
 .modal-button.confirm {
-  background: #1296db;
+  background: #28a745;
   color: white;
 }
 
@@ -401,12 +401,12 @@ page {
 
 .detail-button {
   background-color: #fff;
-  color: #1890ff;
-  border: 1rpx solid #1890ff;
+  color: #28a745;
+  border: 1rpx solid #28a745;
 }
 
 .settle-button {
-  background-color: #1890ff;
+  background-color: #28a745;
   color: #fff;
 }
 
@@ -462,6 +462,6 @@ page {
 
 .modal-btn.confirm,
 .confirm-btn {
-  background: #1296db;
+  background: #28a745;
   color: white;
 }

@@ -90,7 +90,7 @@ page {
 .submit-button {
   width: 90%;
   height: 100rpx;
-  background: linear-gradient(135deg, #1296db, #0e7bb8);
+  background: linear-gradient(135deg, #28a745, #1e7e34);
   color: white;
   border-radius: 50rpx;
   font-size: 32rpx;

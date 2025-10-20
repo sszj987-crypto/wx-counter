@@ -46,7 +46,7 @@ page {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #1296db, #0e7bb8);
+  background: linear-gradient(135deg, #28a745, #1e7e34);
   color: white;
 }
 
@@ -77,12 +77,12 @@ page {
 }
 
 .input:focus {
-  border-color: #1296db;
+  border-color: #28a745;
 }
 
 /* 文本样式 */
 .text-primary {
-  color: #1296db;
+  color: #28a745;
 }
 
 .text-success {
@@ -141,4 +141,4 @@ page {
 
 .flex-1 {
   flex: 1;
-} 
+}

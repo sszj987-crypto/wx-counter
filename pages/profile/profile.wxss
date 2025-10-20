@@ -88,7 +88,7 @@ page {
 .save-button {
   width: 400rpx;
   height: 80rpx;
-  background: linear-gradient(135deg, #1296db, #0e7bb8);
+  background: linear-gradient(135deg, #28a745, #1e7e34);
   color: white;
   border-radius: 40rpx;
   font-size: 32rpx;

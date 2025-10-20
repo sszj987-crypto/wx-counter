@@ -40,7 +40,7 @@ page {
 .start-button {
   width: 90%;
   height: 180rpx;
-  background: linear-gradient(135deg, #1296db, #0e7bb8);
+  background: linear-gradient(135deg, #28a745, #1e7e34);
   border-radius: 60rpx;
   box-shadow: 0 8rpx 24rpx rgba(18, 150, 219, 0.3);
   border: none !important;
