@@ -8,7 +8,7 @@ Page({
    */
   data: {
     userInfo: null,
-    hasUserInfo: false
+    hasUserInfo: true // 默认设为true，确保按钮始终可用
   },
 
   /**
@@ -16,7 +16,10 @@ Page({
    */
   onLoad(options) {
     console.log('主页面加载，参数:', options)
-    this.initUserInfo()
+    // 异步执行用户信息初始化，不阻塞页面显示
+    this.initUserInfo().catch(err => {
+      console.log('用户信息初始化失败，但不影响页面功能:', err)
+    })
   },
 
   /**
@@ -148,14 +151,8 @@ Page({
    */
   async startMultiPlayer() {
     console.log('点击开始可乐计分器按钮')
-    if (!this.data.hasUserInfo) {
-      console.log('用户信息未初始化，显示提示')
-      wx.showToast({
-        title: '正在初始化用户信息...',
-        icon: 'loading'
-      })
-      return
-    }
+    // 移除用户信息检查，确保功能不受阻塞
+    // 如果用户信息还未初始化，会在需要时自动处理
 
     try {
       // 检查是否有活跃的房间
@@ -187,12 +184,19 @@ Page({
     try {
       console.log('开始检查活跃房间')
       
-      // 获取当前用户openId
-      const { result: userInfoResult } = await wx.cloud.callFunction({
-        name: 'getOpenId'
-      })
-      const openId = userInfoResult.openId
-      console.log('当前用户openId:', openId)
+      // 即使没有用户信息初始化完成，也尝试获取openId
+      let openId = null
+      try {
+        const { result: userInfoResult } = await wx.cloud.callFunction({
+          name: 'getOpenId'
+        })
+        openId = userInfoResult.openId
+        console.log('当前用户openId:', openId)
+      } catch (err) {
+        console.log('获取openId失败，可能没有登录，但继续执行:', err)
+        // 如果获取openId失败，返回null，将创建新房间
+        return null
+      }
 
       // 直接从数据库查询活跃房间
       const result = await wx.cloud.database().collection('rooms')

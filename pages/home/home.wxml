@@ -12,8 +12,4 @@
       开始计分 - 各记各的
     </button>
   </view>
-
-  <view class="loading-tip" wx:if="{{!hasUserInfo}}">
-    <view class="loading-text">正在初始化用户信息...</view>
-  </view>
 </view>
