@@ -68,6 +68,17 @@ Page({
   },
 
   /**
+   * 点击分享按钮触发分享
+   */
+  onShareTap() {
+    // 触发微信分享
+    wx.showShareMenu({
+      withShareTicket: true,
+      menus: ['shareAppMessage', 'shareTimeline']
+    })
+  },
+
+  /**
    * 分享给好友
    */
   onShareAppMessage() {

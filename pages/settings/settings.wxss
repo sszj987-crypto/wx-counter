@@ -96,35 +96,7 @@ page {
   font-weight: bold;
 }
 
+/* 分享按钮使用menu-item样式，无需额外定义 */
 .share-item {
-  background: white !important;
-  color: #333 !important;
-  border: none !important;
-  margin: 0 !important;
-  padding: 30rpx 40rpx !important;
-  width: 100% !important;
-  display: flex !important;
-  align-items: center !important;
-  border-bottom: 1rpx solid #f0f0f0 !important;
-  transition: background-color 0.3s !important;
-  font-size: inherit !important;
-  line-height: inherit !important;
-  text-align: left !important;
-  justify-content: flex-start !important;
-  font-family: inherit !important;
-  font-weight: inherit !important;
-  text-decoration: none !important;
-  outline: none !important;
-  box-sizing: border-box !important;
-  border-radius: 0 !important;
+  /* 继承menu-item的样式 */
 }
-
-.share-item::after {
-  border: none;
-}
-
-.share-item:active {
-  background-color: #f8f9fa;
-}
-
-/* 分享按钮的子元素样式继承自通用样式，无需重复定义 */

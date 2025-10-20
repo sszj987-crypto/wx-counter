@@ -47,13 +47,13 @@
       <view class="menu-arrow">›</view>
     </view>
 
-    <button class="share-item" open-type="share">
+    <view class="menu-item share-item" bindtap="onShareTap">
       <view class="menu-icon">📤</view>
       <view class="menu-content">
         <view class="menu-title">分享给其他好友</view>
         <view class="menu-desc">邀请朋友一起使用</view>
       </view>
       <view class="menu-arrow">›</view>
-    </button>
+    </view>
   </view>
 </view>
