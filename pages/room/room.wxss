@@ -129,23 +129,21 @@ page {
 }
 
 /* 保证表头和表格主体的列宽一致 */
-.table-header,
-.table-row {
-  display: grid;
-  grid-template-columns: 33% 33% 33%;  /* 使用百分比代替 fr，确保列宽相等 */
+.table-header, .table-row {
+  display: flex;
   border-bottom: 1rpx solid #f0f0f0;
 }
 
 /* 保证表头和表格主体的内边距一致 */
 .header-cell, .table-cell {
-  padding: 20rpx;  /* 保证所有单元格有相同的内边距 */
+  padding: 20rpx;
   display: flex;
   align-items: center;
-  justify-content: center;
   box-sizing: border-box;
 }
 
 .header-cell.player {
+  flex: 2;
   justify-content: flex-start;
   position: relative;
 }
@@ -159,10 +157,12 @@ page {
 }
 
 .header-cell.score {
+  flex: 1;
   justify-content: center;
 }
 
 .header-cell.action {
+  flex: 1;
   justify-content: center;
 }
 
@@ -171,6 +171,7 @@ page {
 }
 
 .table-cell.player-cell {
+  flex: 2;
   justify-content: flex-start;
   padding-left: 20rpx;
 }
@@ -196,31 +197,41 @@ page {
   text-overflow: ellipsis;
 }
 
-.table-cell.score-cell,
-.table-cell.action-cell {
+.table-cell.score-cell {
+  flex: 1;
+  justify-content: center;
   padding-left: 20rpx;
-  padding-right: 20rpx;  /* 确保操作列与得分列间距一致 */
+  padding-right: 20rpx;
+}
+
+.table-cell.action-cell {
+  flex: 1;
+  justify-content: center;
+  padding-left: 20rpx;
+  padding-right: 20rpx;
 }
 
 .score-value {
   font-size: 32rpx;
   font-weight: bold;
   text-align: center;
-  width: 100%;
 }
 
 /* 为操作列的按钮添加适当的宽度和样式 */
 .transfer-button {
-  width: 80rpx;  /* 调整按钮宽度，确保按钮不超过列宽 */
+  width: 100%;
+  max-width: 120rpx;
   height: 50rpx;
   background: #1296db;
   color: white;
   border-radius: 25rpx;
-  font-size: 30rpx;
+  font-size: 28rpx;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
+  margin: 0;
 }
 
 .transfer-button[disabled] {
