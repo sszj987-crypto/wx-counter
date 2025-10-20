@@ -8,7 +8,8 @@ Page({
    */
   data: {
     userInfo: null,
-    hasUserInfo: true // 默认设为true，确保按钮始终可用
+    hasUserInfo: true, // 默认设为true，确保按钮始终可用
+    isProcessing: false // 标记按钮是否正在处理点击事件，防止重复点击
   },
 
   /**
@@ -150,6 +151,17 @@ Page({
    * 开始可乐计分器
    */
   async startMultiPlayer() {
+    // 防止重复点击
+    if (this.data.isProcessing) {
+      console.log('正在处理中，请稍后再试')
+      return
+    }
+    
+    // 设置处理状态为true
+    this.setData({
+      isProcessing: true
+    })
+    
     console.log('点击开始可乐计分器按钮')
     // 移除用户信息检查，确保功能不受阻塞
     // 如果用户信息还未初始化，会在需要时自动处理
@@ -174,6 +186,13 @@ Page({
       wx.navigateTo({
         url: '/pages/room/room?mode=create'
       })
+    } finally {
+      // 无论成功失败，都在最后将处理状态设为false
+      setTimeout(() => {
+        this.setData({
+          isProcessing: false
+        })
+      }, 500) // 延迟500ms，防止快速重复点击
     }
   },
 
