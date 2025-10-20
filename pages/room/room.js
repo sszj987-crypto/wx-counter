@@ -393,23 +393,34 @@ Page({
    * 输入分数 - 带最大值限制
    */
   onScoreInput(e) {
-    // 非常简单直接的实现
-    if (e && e.detail) {
-      let value = String(e.detail.value || '')
-      // 过滤非数字字符
-      value = value.replace(/[^0-9]/g, '')
-      
-      // 添加最大数值限制（最大值设为100000）
-      const MAX_SCORE = 100000
-      if (value && parseInt(value) > MAX_SCORE) {
-        value = String(MAX_SCORE)
-      }
-      
-      // 直接更新数据
-      this.setData({
-        'transferModal.score': value
-      })
+    // 检查事件参数是否有效
+    if (!e || !e.detail) {
+      console.warn('分数输入事件参数无效');
+      return;
     }
+    
+    // 获取并处理输入值
+    let value = String(e.detail.value || '');
+    // 过滤非数字字符
+    value = value.replace(/[^0-9]/g, '');
+    
+    // 添加最大数值限制（最大值设为100000）
+    const MAX_SCORE = 100000;
+    // 防止空字符串或0导致的问题
+    if (value && parseInt(value) > MAX_SCORE) {
+      value = String(MAX_SCORE);
+      // 可以添加用户提示
+      wx.showToast({
+        title: `最大值为${MAX_SCORE}`,
+        icon: 'none',
+        duration: 1000
+      });
+    }
+    
+    // 直接更新数据
+    this.setData({
+      'transferModal.score': value
+    });
   },
 
   /**
