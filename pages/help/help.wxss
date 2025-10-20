@@ -1,14 +1,14 @@
 /* help.wxss */
 page {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
+  min-height: 100vh;
   background-color: #f8f9fa;
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
 }
 
 .container {
-  flex: 1;
   padding: 40rpx;
+  padding-bottom: 80rpx; /* 增加底部间距，确保最后一个内容完全可见 */
 }
 
 .welcome-section {

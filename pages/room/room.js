@@ -85,6 +85,11 @@ Page({
       })
       const openId = userInfo.openId
       console.log('当前用户openId:', openId)
+      
+      // 更新currentUserOpenId
+      this.setData({
+        currentUserOpenId: openId
+      })
 
       // 生成唯一房间ID
       const roomId = this.generateRoomId()
@@ -189,6 +194,11 @@ Page({
       })
       const openId = userInfoResult.openId
       console.log('当前用户openId:', openId)
+      
+      // 更新currentUserOpenId
+      this.setData({
+        currentUserOpenId: openId
+      })
 
       // 查找房间
       console.log('查找房间，房间ID:', roomId)

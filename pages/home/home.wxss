@@ -38,24 +38,34 @@ page {
 }
 
 .start-button {
-  width: 80%;
-  height: 120rpx;
+  width: 90%;
+  height: 180rpx;
   background: linear-gradient(135deg, #1296db, #0e7bb8);
   border-radius: 60rpx;
   box-shadow: 0 8rpx 24rpx rgba(18, 150, 219, 0.3);
-  border: none;
-  margin: 0;
-  padding: 0;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
   font-size: 36rpx;
   color: white;
   font-weight: bold;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
 .start-button::after {
-  border: none;
+  border: none !important;
+  border-radius: 60rpx !important;
+  width: 100% !important;
+  height: 100% !important;
+  transform: scale(1) !important;
+}
+
+/* 确保微信默认样式不会覆盖我们的自定义样式 */
+.main-content button {
+  width: 90% !important;
 }
 
 .loading-tip {
