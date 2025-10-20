@@ -1,0 +1,85 @@
+// score-details.js
+const db = wx.cloud.database()
+
+Page({
+  data: {
+    roomId: '',
+    roomName: '',
+    scoreRecords: [],
+    isLoading: true
+  },
+
+  onLoad(options) {
+    console.log('给分详情页面加载，参数:', options)
+    const { roomId, roomName } = options
+    
+    if (!roomId) {
+      wx.showToast({
+        title: '房间信息错误',
+        icon: 'error'
+      })
+      setTimeout(() => {
+        wx.navigateBack()
+      }, 1500)
+      return
+    }
+
+    // 解码房间名称，防止乱码
+    let decodedRoomName = '房间'
+    try {
+      decodedRoomName = roomName ? decodeURIComponent(roomName) : '房间'
+    } catch (e) {
+      console.error('解码房间名称失败:', e)
+    }
+    
+    this.setData({
+      roomId: roomId,
+      roomName: decodedRoomName
+    })
+
+    this.getScoreRecords()
+  },
+
+  // 获取给分记录
+  async getScoreRecords() {
+    try {
+      this.setData({ isLoading: true })
+      
+      // 查询records集合中该房间的所有记录，按时间倒序排列
+      const records = await db.collection('records')
+        .where({
+          roomId: this.data.roomId
+        })
+        .orderBy('createTime', 'desc')
+        .get()
+
+      console.log('获取到的给分记录:', records.data)
+      
+      this.setData({
+        scoreRecords: records.data,
+        isLoading: false
+      })
+    } catch (error) {
+      console.error('获取给分记录失败:', error)
+      wx.showToast({
+        title: '获取记录失败',
+        icon: 'error'
+      })
+      this.setData({ isLoading: false })
+    }
+  },
+
+  // 格式化时间
+  formatTime(time) {
+    if (!time) return ''
+    const date = new Date(time)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hour = String(date.getHours()).padStart(2, '0')
+    const minute = String(date.getMinutes()).padStart(2, '0')
+    const second = String(date.getSeconds()).padStart(2, '0')
+    
+    return `${year}-${month}-${day} ${hour}:${minute}:${second}`
+  }
+})

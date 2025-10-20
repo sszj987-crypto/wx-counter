@@ -3,6 +3,8 @@
     "pages/home/home",
     "pages/settings/settings",
     "pages/room/room",
+    "pages/score-details/score-details",
+    "pages/settlement/settlement",
     "pages/profile/profile",
     "pages/statistics/statistics",
     "pages/help/help",

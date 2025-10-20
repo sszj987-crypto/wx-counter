@@ -9,7 +9,8 @@
 
   <view class="main-content">
     <button class="start-button" bindtap="startMultiPlayer" disabled="{{!hasUserInfo}}">
-      开始计分 - 各记各的
+      <view>开始计分 - 多人模式</view>
+      <view class="button-note">所有玩家自己计分</view>
     </button>
   </view>
 </view>

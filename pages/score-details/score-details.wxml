@@ -1,0 +1,43 @@
+<!--score-details.wxml-->
+<navigation-bar title="给分详情" back="{{true}}" color="black" background="#FFF"></navigation-bar>
+
+<view class="container">
+  <!-- 房间信息 -->
+  <view class="room-info" wx:if="{{!isLoading}}">
+    <view class="room-name">{{roomName}}</view>
+  </view>
+
+  <!-- 给分记录列表 -->
+  <view class="records-section" wx:if="{{!isLoading}}">
+    <view class="section-title">
+      <view class="title-text">给分记录</view>
+      <view class="record-count">{{scoreRecords.length}}条</view>
+    </view>
+
+    <view class="records-list">
+      <view class="records-empty" wx:if="{{scoreRecords.length === 0}}">
+        <view class="empty-text">暂无给分记录</view>
+      </view>
+
+      <view class="record-item" wx:for="{{scoreRecords}}" wx:key="_id">
+        <view class="record-header">
+          <view class="record-time">{{formatTime(item.createTime)}}</view>
+        </view>
+        
+        <view class="record-content">
+          <view class="record-player-info">
+            <image class="player-avatar" src="{{item.fromUser.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+            <view class="player-name">{{item.fromUser.nickName || '玩家'}}</view>
+            <view class="arrow">→</view>
+            <image class="player-avatar" src="{{item.toUser.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+            <view class="player-name">{{item.toUser.nickName || '玩家'}}</view>
+          </view>
+          
+          <view class="record-score">
+            <view class="score-value" style="color: #52c41a">+{{item.score}}</view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

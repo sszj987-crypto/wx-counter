@@ -19,6 +19,10 @@ Page({
       show: false,
       targetPlayer: null,
       score: ''
+    },
+    settlementModal: {
+      show: false,
+      rate: '1'
     }
   },
 
@@ -505,6 +509,114 @@ Page({
   /**
    * 生命周期函数--监听页面卸载
    */
+  // 跳转到给分详情页面
+  navigateToScoreDetails() {
+    if (!this.data.roomId || !this.data.roomData) {
+      wx.showToast({
+        title: '房间信息错误',
+        icon: 'error'
+      })
+      return
+    }
+
+    wx.navigateTo({
+      url: `/pages/score-details/score-details?roomId=${this.data.roomId}&roomName=${encodeURIComponent(this.data.roomData.roomName || '房间')}`
+    })
+  },
+
+  // 显示结算弹窗
+  showSettlementModal() {
+    if (!this.data.roomId || !this.data.roomData) {
+      wx.showToast({
+        title: '房间信息错误',
+        icon: 'error'
+      })
+      return
+    }
+
+    this.setData({
+      'settlementModal.show': true,
+      'settlementModal.rate': '1'
+    })
+  },
+
+  // 隐藏结算弹窗
+  hideSettlementModal() {
+    this.setData({
+      'settlementModal.show': false,
+      'settlementModal.rate': '1'
+    })
+  },
+
+  // 处理倍率输入
+  onRateInput(e) {
+    // 检查事件参数是否有效
+    if (!e || !e.detail) {
+      console.warn('倍率输入事件参数无效');
+      return;
+    }
+    
+    // 获取并处理输入值
+    let value = String(e.detail.value || '');
+    // 过滤非数字和小数点字符
+    value = value.replace(/[^0-9.]/g, '');
+    // 确保只有一个小数点
+    const parts = value.split('.');
+    if (parts.length > 2) {
+      value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    // 限制小数位数为2位
+    if (parts.length === 2 && parts[1].length > 2) {
+      value = parts[0] + '.' + parts[1].substring(0, 2);
+    }
+    // 确保不能以小数点开头
+    if (value.startsWith('.')) {
+      value = '0' + value;
+    }
+    // 限制最大值为10000
+    const MAX_RATE = 10000;
+    if (value && parseFloat(value) > MAX_RATE) {
+      value = String(MAX_RATE);
+      wx.showToast({
+        title: `最大值为${MAX_RATE}`,
+        icon: 'none',
+        duration: 1000
+      });
+    }
+    
+    this.setData({
+      'settlementModal.rate': value
+    });
+  },
+
+  // 确认结算
+  confirmSettlement() {
+    const { rate } = this.data.settlementModal
+    
+    // 验证倍率输入
+    let rateValue = parseFloat(rate)
+    if (!rate || isNaN(rateValue) || rateValue <= 0) {
+      wx.showToast({
+        title: '请输入有效倍率',
+        icon: 'none'
+      })
+      return
+    }
+
+    // 跳转到结算页面
+    const data = {
+      roomId: this.data.roomId,
+      roomName: this.data.roomData.roomName,
+      players: this.data.roomData.players,
+      rate: rateValue
+    }
+
+    this.hideSettlementModal()
+    wx.navigateTo({
+      url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify(data))}`
+    })
+  },
+
   onUnload() {
     // 关闭数据监听
     if (this.watcher) {

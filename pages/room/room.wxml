@@ -68,6 +68,44 @@
       </view>
     </view>
   </view>
+
+  <!-- 结算房间弹窗 -->
+  <view class="modal-overlay" wx:if="{{settlementModal.show}}" bindtap="hideSettlementModal">
+    <view class="modal-content" catchtap="">
+      <view class="modal-header">
+        <view class="modal-title">得分跟倍率相乘计算为最终得分</view>
+        <view class="modal-close" bindtap="hideSettlementModal">×</view>
+      </view>
+      
+      <view style="padding: 30rpx;">
+        <text style="display: block; margin-bottom: 20rpx;">输入计算倍率：</text>
+        <input 
+          type="number" 
+          placeholder="1" 
+          value="{{settlementModal.rate}}"
+          bindinput="onRateInput" 
+          focus="{{settlementModal.show}}"
+          style="width: calc(100% - 40rpx); height: 80rpx; border: 1rpx solid #ddd; border-radius: 8rpx; padding: 0 20rpx; font-size: 32rpx;"
+          confirm-type="done"
+          maxlength="5"/>
+      </view>
+      
+      <view class="modal-footer">
+        <button class="modal-button cancel" bindtap="hideSettlementModal">取消</button>
+        <button class="modal-button confirm" bindtap="confirmSettlement">确定</button>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 底部操作按钮 -->
+<view class="bottom-actions" wx:if="{{roomData && !isCreating}}">
+  <button class="action-button detail-button" bindtap="navigateToScoreDetails">
+    给分详情
+  </button>
+  <button class="action-button settle-button" bindtap="showSettlementModal">
+    结算房间
+  </button>
 </view>
 
 <!-- 给分弹窗 -->
