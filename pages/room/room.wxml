@@ -74,23 +74,22 @@
 <view class="modal-overlay" wx:if="{{transferModal.show}}" bindtap="hideTransferModal">
   <view class="modal-content" catchtap="">
     <view class="modal-header">
-      <view class="modal-title">给 {{transferModal.targetPlayer.nickName}} 加分</view>
+      <view class="modal-title">给 {{transferModal.targetPlayer && transferModal.targetPlayer.nickName ? transferModal.targetPlayer.nickName : '玩家'}} 加分</view>
       <view class="modal-close" bindtap="hideTransferModal">×</view>
     </view>
     
-    <view class="modal-body">
-      <view class="input-group">
-        <view class="input-label">分数</view>
-        <input class="score-input" 
-               type="number" 
-               placeholder="请输入分数" 
-               value="{{transferModal.score}}"
-               bindinput="onScoreInput" />
-      </view>
-      
-      <view class="current-score">
-        您的当前分数: {{getCurrentUserScore()}}
-      </view>
+    <!-- 简化的输入区域 -->
+    <view style="padding: 30rpx;">
+      <text style="display: block; margin-bottom: 20rpx;">请输入分数：</text>
+      <input 
+        type="number" 
+        placeholder="0" 
+        value="{{transferModal.score}}"
+        bindinput="onScoreInput" 
+        focus="{{transferModal.show}}"
+        style="width: 100%; height: 80rpx; border: 1rpx solid #ddd; border-radius: 8rpx; padding: 0 20rpx; font-size: 32rpx;"
+        confirm-type="done"
+        cursor="10"/>
     </view>
     
     <view class="modal-footer">

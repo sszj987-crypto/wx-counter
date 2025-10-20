@@ -342,26 +342,39 @@ Page({
   },
 
   /**
-   * 显示给分弹窗
+   * 显示给分弹窗 - 修复版本
    */
   showTransferModal(e) {
-    const { player } = e.currentTarget.dataset
-    
-    console.log("showTransferModal", player.openId, this.data.currentUserOpenId)
-    // 不能给自己给分
-    if (player.openId === this.data.currentUserOpenId) {
-      wx.showToast({
-        title: '不能给自己给分',
-        icon: 'none'
-      })
-      return
-    }
+    try {
+      const { player } = e.currentTarget.dataset
+      
+      // 不能给自己给分
+      if (player && player.openId === this.data.currentUserOpenId) {
+        wx.showToast({
+          title: '不能给自己给分',
+          icon: 'none'
+        })
+        return
+      }
 
-    this.setData({
-      'transferModal.show': true,
-      'transferModal.targetPlayer': player,
-      'transferModal.score': ''
-    })
+      // 重置并显示弹窗
+      this.setData({
+        'transferModal.show': true,
+        'transferModal.targetPlayer': player,
+        'transferModal.score': ''
+      })
+      
+      // 短暂延迟后尝试聚焦输入框（如果需要）
+      setTimeout(() => {
+        try {
+          // 微信小程序不支持直接DOM操作，依赖focus属性自动聚焦
+        } catch (err) {
+          console.log('聚焦尝试失败，但不会影响功能')
+        }
+      }, 100)
+    } catch (error) {
+      console.error('显示给分弹窗失败:', error)
+    }
   },
 
   /**
@@ -375,13 +388,24 @@ Page({
     })
   },
 
+
   /**
-   * 输入分数
+   * 输入分数 - 带最大值限制
    */
   onScoreInput(e) {
-    const value = e.detail.value
-    // 只允许输入数字
-    if (/^\d*$/.test(value)) {
+    // 非常简单直接的实现
+    if (e && e.detail) {
+      let value = String(e.detail.value || '')
+      // 过滤非数字字符
+      value = value.replace(/[^0-9]/g, '')
+      
+      // 添加最大数值限制（最大值设为100000）
+      const MAX_SCORE = 100000
+      if (value && parseInt(value) > MAX_SCORE) {
+        value = String(MAX_SCORE)
+      }
+      
+      // 直接更新数据
       this.setData({
         'transferModal.score': value
       })
