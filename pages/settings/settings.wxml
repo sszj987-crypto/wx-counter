@@ -56,4 +56,19 @@
       <view class="menu-arrow">›</view>
     </view>
   </view>
+
+  <!-- 小程序码弹窗 -->
+  <view class="qrcode-popup" wx:if="{{showQrcode}}">
+    <view class="qrcode-mask" bindtap="closeQrcode"></view>
+    <view class="qrcode-container">
+      <view class="qrcode-header">
+        <text class="qrcode-title">小程序码</text>
+        <view class="close-btn" bindtap="closeQrcode">✕</view>
+      </view>
+      <view class="qrcode-body">
+        <image class="qrcode-img" src="{{qrcodeUrl}}" mode="aspectFit"></image>
+        <text class="qrcode-tip">扫码即可使用小程序</text>
+      </view>
+    </view>
+  </view>
 </view>

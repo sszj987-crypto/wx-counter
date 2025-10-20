@@ -98,5 +98,86 @@ page {
 
 /* 分享按钮使用menu-item样式，无需额外定义 */
 .share-item {
-  /* 继承menu-item的样式 */
+  /* 继承menu-item样式 */
+}
+
+/* 小程序码弹窗样式 */
+.qrcode-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.qrcode-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.qrcode-container {
+  position: relative;
+  background: white;
+  border-radius: 16rpx;
+  width: 70%;
+  max-width: 600rpx;
+  overflow: hidden;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.2);
+}
+
+.qrcode-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 30rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+  background: #f8f9fa;
+}
+
+.qrcode-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.close-btn {
+  font-size: 40rpx;
+  color: #999;
+  width: 60rpx;
+  height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #e9ecef;
+}
+
+.qrcode-body {
+  padding: 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.qrcode-img {
+  width: 400rpx;
+  height: 400rpx;
+  margin-bottom: 30rpx;
+  border: 10rpx solid #f8f9fa;
+  border-radius: 12rpx;
+}
+
+.qrcode-tip {
+  font-size: 28rpx;
+  color: #666;
+  text-align: center;
+  line-height: 1.5;
 }

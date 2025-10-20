@@ -7,7 +7,9 @@ Page({
    * 页面的初始数据
    */
   data: {
-    userInfo: null
+    userInfo: null,
+    showQrcode: false,
+    qrcodeUrl: '/images/小程序码.jpg'
   },
 
   /**
@@ -68,13 +70,27 @@ Page({
   },
 
   /**
-   * 点击分享按钮触发分享
+   * 点击分享按钮显示小程序码
    */
   onShareTap() {
-    // 触发微信分享
+    // 显示小程序码弹窗
+    this.setData({
+      showQrcode: true
+    })
+    
+    // 同时打开原生分享菜单选项
     wx.showShareMenu({
       withShareTicket: true,
       menus: ['shareAppMessage', 'shareTimeline']
+    })
+  },
+  
+  /**
+   * 关闭小程序码弹窗
+   */
+  closeQrcode() {
+    this.setData({
+      showQrcode: false
     })
   },
 
