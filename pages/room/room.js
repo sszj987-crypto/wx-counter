@@ -76,6 +76,7 @@ Page({
     try {
       const app = getApp();
       let userInfo = app.globalData.userInfo || {};
+      let currentUserOpenId = '';
       
       // 尝试从数据库获取最新用户信息
       try {
@@ -84,6 +85,7 @@ Page({
           name: 'getOpenId'
         });
         const openId = userInfoResult.openId;
+        currentUserOpenId = openId; // 保存openId
         
         // 从数据库查询最新用户信息
         const db = wx.cloud.database();
@@ -117,7 +119,7 @@ Page({
       // 更新页面数据
       this.setData({
         userInfo: userInfo,
-        currentUserOpenId: '' // 将在云函数中获取
+        currentUserOpenId: currentUserOpenId // 设置用户openId
       });
     } catch (error) {
       console.error('更新用户信息失败:', error);
@@ -128,7 +130,7 @@ Page({
       };
       this.setData({
         userInfo: defaultUserInfo,
-        currentUserOpenId: ''
+        // 保留当前的currentUserOpenId，不要重置为空
       });
     }
   },

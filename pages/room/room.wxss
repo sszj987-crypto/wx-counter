@@ -4,11 +4,13 @@ page {
   display: flex;
   flex-direction: column;
   background-color: #f8f9fa;
+  padding-top: env(safe-area-inset-top); /* 添加顶部安全区域避让 */
 }
 
 .container {
   flex: 1;
   padding: 40rpx;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 40rpx); /* 添加底部安全区域避让 */
 }
 
 .loading {
