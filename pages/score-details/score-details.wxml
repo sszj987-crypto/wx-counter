@@ -26,11 +26,11 @@
         
         <view class="record-content">
           <view class="record-player-info">
-            <image class="player-avatar" src="{{item.fromUser.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
-            <view class="player-name">{{item.fromUser.nickName || '玩家'}}</view>
+            <image class="player-avatar" src="{{'/images/default-avatar.png'}}"></image>
+            <view class="player-name">{{item.fromPlayerNickName || '玩家'}}</view>
             <view class="arrow">→</view>
-            <image class="player-avatar" src="{{item.toUser.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
-            <view class="player-name">{{item.toUser.nickName || '玩家'}}</view>
+            <image class="player-avatar" src="{{'/images/default-avatar.png'}}"></image>
+            <view class="player-name">{{item.toPlayerNickName || '玩家'}}</view>
           </view>
           
           <view class="record-score">

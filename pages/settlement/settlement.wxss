@@ -1,8 +1,9 @@
 /* settlement.wxss */
 .container {
-  padding: 30rpx;
+  padding: 100rpx 30rpx 30rpx;
   background: #f8f8f8;
   min-height: 100vh;
+  box-sizing: border-box;
 }
 
 .room-info {
@@ -27,6 +28,16 @@
 .rate-info {
   font-size: 28rpx;
   color: #666;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  flex-wrap: nowrap;
+}
+
+.rate-info > text {
+  display: inline;
+  margin-left: 8rpx;
 }
 
 .rate-value {

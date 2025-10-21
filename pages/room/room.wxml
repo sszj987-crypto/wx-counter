@@ -152,6 +152,11 @@
     <view class="qrcode-display">
       <image class="large-qrcode" src="{{qrcodeUrl}}" mode="aspectFit"></image>
       <view class="qrcode-instruction">请使用微信扫描上方二维码加入房间</view>
+      <view class="room-id-display">
+        <text class="room-id-label">房间ID:</text>
+        <text class="room-id-value">{{currentRoomId}}</text>
+      </view>
+      <view class="qrcode-tip">如扫描无效，请手动输入上方房间ID加入</view>
     </view>
   </view>
 </view>

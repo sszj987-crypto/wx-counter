@@ -1,12 +1,12 @@
 <!--settlement.wxml-->
-<navigation-bar title="房间结算" back="{{true}}" color="black" background="#FFF"></navigation-bar>
+<navigation-bar title="房间结算" back="{{true}}" homeButton="{{true}}" color="black" background="#FFF"></navigation-bar>
 
 <view class="container">
   
   <!-- 房间信息 -->
   <view class="room-info">
     <view class="room-name">{{roomName}}</view>
-    <view class="rate-info">计算倍率: <text class="rate-value">{{rate}}</text></view>
+    <view class="rate-info">计算倍率: <text class="rate-value">{{rate || 1}}</text>倍</view>
   </view>
 
   <!-- 结算表格 -->

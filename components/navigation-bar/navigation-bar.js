@@ -108,4 +108,15 @@ Component({
       this.triggerEvent('back', { delta: data.delta }, {})
     }
   },
+  
+  /**
+   * 回到首页
+   */
+  home() {
+    wx.switchTab({
+      url: '/pages/home/home'
+    });
+    
+    this.triggerEvent('home', {}, {});
+  }
 })

@@ -37,13 +37,29 @@
   box-sizing: border-box;
 }
 
-.weui-navigation-bar__btn_goback_wrapper {
+.weui-navigation-bar__btn_goback_wrapper,
+.weui-navigation-bar__btn_home_wrapper {
   padding: 11px 18px 11px 16px;
   margin: -11px -18px -11px -16px;
 }
 
-.weui-navigation-bar__btn_goback_wrapper.weui-active {
+.weui-navigation-bar__btn_goback_wrapper.weui-active,
+.weui-navigation-bar__btn_home_wrapper.weui-active {
   opacity: 0.5;
+}
+
+/* Home按钮样式 */
+.weui-navigation-bar__btn_home {
+  font-size: 12px;
+  width: 20px;
+  height: 24px;
+  background-color: var(--weui-FG-0);
+  mask-size: 20px 24px;
+  -webkit-mask-size: 20px 24px;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='24' viewBox='0 0 20 24'%3E%3Cpath fill='%23000' d='M10 0L0 9h4v15h12V9h4L10 0z'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='24' viewBox='0 0 20 24'%3E%3Cpath fill='%23000' d='M10 0L0 9h4v15h12V9h4L10 0z'/%3E%3C/svg%3E");
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
 }
 
 .weui-navigation-bar__btn_goback {

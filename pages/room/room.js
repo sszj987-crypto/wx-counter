@@ -313,24 +313,48 @@ Page({
   },
 
   /**
-   * 生成小程序码
+   * 生成小程序码 - 简化实现，直接使用本地默认图片
    */
-  async generateQRCode() {
+  generateQRCode() {
     try {
-      const result = await wx.cloud.callFunction({
-        name: 'generateQRCode',
-        data: {
-          roomId: this.data.roomId
-        }
-      })
-
-      if (result.result.success) {
-        this.setData({
-          qrcodeUrl: result.result.qrcodeUrl
-        })
+      // 如果没有roomId，不执行生成
+      if (!this.data.roomId) {
+        console.error('房间ID未设置');
+        wx.showToast({
+          title: '房间ID未设置，无法生成二维码',
+          icon: 'none'
+        });
+        return;
       }
+      
+      // 直接使用本地默认二维码图片作为解决方案
+      this.setData({
+        qrcodeUrl: '/images/小程序码.jpg',
+        // 存储房间ID，用于在弹窗中显示
+        currentRoomId: this.data.roomId
+      });
+      
+      console.log('使用本地默认二维码图片');
+      
     } catch (error) {
-      console.error('生成小程序码失败:', error)
+      console.error('二维码处理失败:', error);
+      // 出错时仍使用默认图片
+      this.setData({
+        qrcodeUrl: '/images/小程序码.jpg',
+        currentRoomId: this.data.roomId || ''
+      });
+    }
+  },
+    } catch (error) {
+      console.error('生成小程序码失败:', error);
+      // 出错时使用默认图片
+      this.setData({
+        qrcodeUrl: '/images/小程序码.jpg'
+      })
+      wx.showToast({
+        title: '二维码生成失败，显示备用图片',
+        icon: 'none'
+      })
     }
   },
 
@@ -338,6 +362,12 @@ Page({
    * 显示二维码弹窗
    */
   showQRCodeModal() {
+    // 确保设置了currentRoomId
+    if (this.data.roomId) {
+      this.setData({
+        currentRoomId: this.data.roomId
+      })
+    }
     // 确保二维码已生成
     if (!this.data.qrcodeUrl) {
       this.generateQRCode()
