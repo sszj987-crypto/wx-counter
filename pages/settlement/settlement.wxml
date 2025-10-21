@@ -48,4 +48,23 @@
       </view>
     </view>
   </view>
+  
+  <!-- 操作按钮 -->
+  <view class="action-buttons">
+    <button 
+      class="new-game-btn" 
+      bindtap="startNewGame"
+      disabled="{{isCreatingNewRoom}}"
+      loading="{{isCreatingNewRoom}}"
+    >
+      开始新局
+    </button>
+    <button 
+      class="home-btn" 
+      bindtap="goToHome"
+      type="default"
+    >
+      返回首页
+    </button>
+  </view>
 </view>

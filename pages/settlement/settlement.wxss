@@ -1,69 +1,62 @@
 /* settlement.wxss */
+
+/* 主容器样式 */
 .container {
-  padding: 100rpx 30rpx 30rpx;
-  background: #f8f8f8;
-  min-height: 100vh;
+  padding: 20rpx;
   box-sizing: border-box;
+  min-height: 100vh;
+  background-color: #f8f8f8;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom) || 20rpx;
 }
 
+/* 房间信息样式 */
 .room-info {
-  background-color: #fff;
+  background-color: #ffffff;
   padding: 30rpx;
   border-radius: 12rpx;
   margin-bottom: 20rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 140rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
 }
 
 .room-name {
   font-size: 36rpx;
   font-weight: bold;
-  color: #333;
-  margin-bottom: 15rpx;
+  color: #333333;
+  margin-bottom: 10rpx;
 }
 
 .rate-info {
   font-size: 28rpx;
-  color: #666;
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  width: auto;
-  flex-wrap: nowrap;
-}
-
-.rate-info > text {
-  display: inline;
-  margin-left: 8rpx;
+  color: #666666;
 }
 
 .rate-value {
+  color: #1890ff;
   font-weight: bold;
-  color: #28a745;
-  font-size: 32rpx;
 }
 
+/* 结算部分样式 */
 .settlement-section {
-  background-color: #fff;
-  padding: 30rpx;
+  background-color: #ffffff;
   border-radius: 12rpx;
+  padding: 30rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+  flex: 1;
 }
 
 .section-title {
-  margin-bottom: 30rpx;
-  padding-bottom: 20rpx;
-  border-bottom: 1rpx solid #eee;
+  margin-bottom: 20rpx;
 }
 
 .title-text {
   font-size: 32rpx;
   font-weight: bold;
-  color: #333;
+  color: #333333;
 }
 
+/* 表格样式 */
 .settlement-table {
   width: 100%;
 }
@@ -71,42 +64,44 @@
 .table-header {
   display: flex;
   background-color: #fafafa;
-  border-radius: 8rpx;
   padding: 20rpx 0;
+  border-radius: 8rpx;
   margin-bottom: 10rpx;
 }
 
 .header-cell {
+  flex: 1;
+  text-align: center;
   font-size: 28rpx;
   font-weight: bold;
-  color: #666;
-  text-align: center;
+  color: #666666;
 }
 
 .header-cell.rank {
-  width: 15%;
+  flex: 0.6;
 }
 
 .header-cell.player {
-  width: 40%;
-  text-align: left;
-  padding-left: 20rpx;
+  flex: 1.5;
 }
 
-.header-cell.score,
+.header-cell.score {
+  flex: 0.8;
+}
+
 .header-cell.rate-score {
-  width: 22.5%;
+  flex: 0.8;
 }
 
 .table-body {
-  width: 100%;
+  margin-top: 10rpx;
 }
 
 .table-row {
   display: flex;
-  align-items: center;
   padding: 20rpx 0;
   border-bottom: 1rpx solid #f0f0f0;
+  align-items: center;
 }
 
 .table-row:last-child {
@@ -114,33 +109,47 @@
 }
 
 .table-cell {
+  flex: 1;
+  text-align: center;
+  font-size: 28rpx;
+}
+
+.table-cell.rank-cell {
+  flex: 0.6;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.table-cell.player-cell {
+  flex: 1.5;
   display: flex;
   align-items: center;
 }
 
-.rank-cell {
-  width: 15%;
-  justify-content: center;
+.table-cell.score-cell {
+  flex: 0.8;
 }
 
+.table-cell.rate-score-cell {
+  flex: 0.8;
+}
+
+/* 排名样式 */
 .rank-number {
   width: 40rpx;
   height: 40rpx;
   border-radius: 50%;
-  background-color: #e8e8e8;
-  color: #666;
   display: flex;
   justify-content: center;
   align-items: center;
   font-size: 24rpx;
   font-weight: bold;
+  color: #666666;
+  background-color: #f0f0f0;
 }
 
-.player-cell {
-  width: 40%;
-  padding-left: 20rpx;
-}
-
+/* 玩家头像样式 */
 .player-avatar {
   width: 60rpx;
   height: 60rpx;
@@ -150,21 +159,70 @@
 
 .player-name {
   font-size: 28rpx;
-  color: #333;
-  flex: 1;
+  color: #333333;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.score-cell,
-.rate-score-cell {
-  width: 22.5%;
-  justify-content: center;
-}
-
+/* 分数样式 */
 .score-value,
 .rate-score-value {
-  font-size: 32rpx;
+  font-size: 30rpx;
   font-weight: bold;
+}
+
+/* 操作按钮样式 */
+.action-buttons {
+  margin-top: 40rpx;
+  display: flex;
+  flex-direction: row;
+  gap: 20rpx;
+  padding: 0 20rpx 20rpx;
+}
+
+.new-game-btn,
+.home-btn {
+  flex: 1;
+}
+
+.new-game-btn {
+  background-color: #1890ff;
+  color: white;
+  border-radius: 8rpx;
+  font-size: 32rpx;
+  padding: 25rpx 0;
+  margin: 0;
+  box-shadow: 0 2rpx 10rpx rgba(24, 144, 255, 0.2);
+}
+
+.new-game-btn:active {
+  background-color: #40a9ff;
+}
+
+.home-btn {
+  background-color: #ffffff;
+  color: #666666;
+  border-radius: 8rpx;
+  font-size: 32rpx;
+  padding: 25rpx 0;
+  margin: 0;
+  border: 1rpx solid #d9d9d9;
+}
+
+.home-btn:active {
+  background-color: #f5f5f5;
+}
+
+/* 加载状态样式 */
+.new-game-btn[loading="true"] {
+  color: transparent;
+}
+
+/* 适配不同屏幕大小 */
+@media (min-width: 768rpx) {
+  .container {
+    max-width: 600rpx;
+    margin: 0 auto;
+  }
 }

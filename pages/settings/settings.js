@@ -18,19 +18,65 @@ Page({
   onLoad() {
     this.getUserInfo()
   },
+  
+  /**
+   * 生命周期函数--监听页面显示
+   * 每次页面显示时都重新获取最新用户信息
+   */
+  onShow() {
+    this.getUserInfo()
+  },
 
   /**
-   * 获取用户信息
+   * 获取用户信息 - 从数据库获取最新信息
    */
-  getUserInfo() {
-    const app = getApp()
-    const userInfo = app.globalData.userInfo || {}
-    this.setData({
-      userInfo: {
-        nickName: userInfo.nickName || '玩家',
-        avatarUrl: userInfo.avatarUrl || '/images/default-avatar.png'
+  async getUserInfo() {
+    try {
+      const app = getApp()
+      let userInfo = app.globalData.userInfo || {}
+      
+      // 尝试从数据库获取最新用户信息
+      try {
+        // 获取当前用户openId
+        const { result: userInfoResult } = await wx.cloud.callFunction({
+          name: 'getOpenId'
+        })
+        const openId = userInfoResult.openId
+        
+        // 从数据库查询最新用户信息
+        const db = wx.cloud.database()
+        const userDoc = await db.collection('users').doc(openId).get()
+        
+        if (userDoc.data) {
+          console.log('从数据库获取到最新用户信息')
+          // 更新全局用户信息
+          userInfo = {
+            nickName: userDoc.data.nickName || '玩家',
+            avatarUrl: userDoc.data.avatarUrl || '/images/default-avatar.png'
+          }
+          app.globalData.userInfo = userInfo
+        }
+      } catch (dbError) {
+        console.log('从数据库获取用户信息失败，使用本地信息', dbError)
       }
-    })
+      
+      // 设置页面数据
+      this.setData({
+        userInfo: {
+          nickName: userInfo.nickName || '玩家',
+          avatarUrl: userInfo.avatarUrl || '/images/default-avatar.png'
+        }
+      })
+    } catch (error) {
+      console.error('获取用户信息失败:', error)
+      // 即使出错也设置默认信息
+      this.setData({
+        userInfo: {
+          nickName: '玩家',
+          avatarUrl: '/images/default-avatar.png'
+        }
+      })
+    }
   },
 
   /**

@@ -34,29 +34,15 @@ Page({
   /**
    * 生命周期函数--监听页面加载
    */
-  onLoad(options) {
+  async onLoad(options) {
     console.log('房间页面加载，参数:', options);
     const { roomId, mode } = options;
     const app = getApp();
     
-    // 获取用户信息
-    let userInfo = app.globalData.userInfo;
-    if (!userInfo) {
-      console.log('没有用户信息，生成默认信息');
-      // 如果没有用户信息，生成默认信息
-      userInfo = {
-        nickName: '玩家' + Math.floor(Math.random() * 900) + 100,
-        avatarUrl: '/images/default-avatar.png'
-      };
-      app.globalData.userInfo = userInfo;
-    }
-    console.log('房间页面用户信息:', userInfo);
-
-    this.setData({
-      userInfo: userInfo,
-      currentUserOpenId: '' // 将在云函数中获取
-    });
-
+    // 先获取最新用户信息
+    await this.updateUserInfoFromDatabase();
+    
+    // 然后处理房间逻辑
     if (mode === 'create') {
       console.log('创建房间模式');
       this.createRoom();
@@ -72,6 +58,78 @@ Page({
       setTimeout(() => {
         wx.navigateBack();
       }, 1500);
+    }
+  },
+  
+  /**
+   * 生命周期函数--监听页面显示
+   * 每次页面显示时都重新获取最新用户信息
+   */
+  onShow() {
+    this.updateUserInfoFromDatabase();
+  },
+  
+  /**
+   * 从数据库更新用户信息
+   */
+  async updateUserInfoFromDatabase() {
+    try {
+      const app = getApp();
+      let userInfo = app.globalData.userInfo || {};
+      
+      // 尝试从数据库获取最新用户信息
+      try {
+        // 获取当前用户openId
+        const { result: userInfoResult } = await wx.cloud.callFunction({
+          name: 'getOpenId'
+        });
+        const openId = userInfoResult.openId;
+        
+        // 从数据库查询最新用户信息
+        const db = wx.cloud.database();
+        const userDoc = await db.collection('users').doc(openId).get();
+        
+        if (userDoc.data) {
+          console.log('从数据库获取到最新用户信息:', userDoc.data);
+          // 更新用户信息
+          userInfo = {
+            nickName: userDoc.data.nickName || '玩家',
+            avatarUrl: userDoc.data.avatarUrl || '/images/default-avatar.png'
+          };
+          // 更新全局用户信息
+          app.globalData.userInfo = userInfo;
+        }
+      } catch (dbError) {
+        console.log('从数据库获取用户信息失败，使用本地信息', dbError);
+      }
+      
+      // 如果仍然没有用户信息，生成默认信息
+      if (!userInfo.nickName) {
+        console.log('没有用户信息，生成默认信息');
+        userInfo = {
+          nickName: '玩家' + Math.floor(Math.random() * 900) + 100,
+          avatarUrl: '/images/default-avatar.png'
+        };
+        app.globalData.userInfo = userInfo;
+      }
+      
+      console.log('最终用户信息:', userInfo);
+      // 更新页面数据
+      this.setData({
+        userInfo: userInfo,
+        currentUserOpenId: '' // 将在云函数中获取
+      });
+    } catch (error) {
+      console.error('更新用户信息失败:', error);
+      // 出错时设置默认信息
+      const defaultUserInfo = {
+        nickName: '玩家',
+        avatarUrl: '/images/default-avatar.png'
+      };
+      this.setData({
+        userInfo: defaultUserInfo,
+        currentUserOpenId: ''
+      });
     }
   },
 
@@ -253,12 +311,47 @@ Page({
         this.watchRoomData();
         return;
       }
+      
+      // 确保用户信息完整 - 解决邀请加入房间后图标名字不显示的问题
+      // 先尝试从数据库获取用户信息
+      let userInfoFromDb = null;
+      try {
+        const userResult = await wx.cloud.database().collection('users').doc(openId).get();
+        userInfoFromDb = userResult.data;
+        console.log('从数据库获取的用户信息:', userInfoFromDb);
+      } catch (e) {
+        console.log('数据库中未找到用户信息:', e);
+      }
+      
+      // 合并用户信息 - 优先使用数据库信息，如果没有则使用本地信息或默认值
+      const app = getApp();
+      let userInfo = app.globalData.userInfo || {};
+      
+      // 如果数据库有用户信息，则优先使用
+      if (userInfoFromDb) {
+        userInfo = {
+          ...userInfo,
+          nickName: userInfoFromDb.nickName || userInfo.nickName || '玩家' + Math.floor(Math.random() * 900) + 100,
+          avatarUrl: userInfoFromDb.avatarUrl || userInfo.avatarUrl || '/images/default-avatar.png'
+        };
+      } else {
+        // 确保有默认的昵称和头像
+        userInfo = {
+          ...userInfo,
+          nickName: userInfo.nickName || '玩家' + Math.floor(Math.random() * 900) + 100,
+          avatarUrl: userInfo.avatarUrl || '/images/default-avatar.png'
+        };
+      }
+      
+      // 更新全局用户信息
+      app.globalData.userInfo = userInfo;
+      console.log('合并后的用户信息:', userInfo);
 
       // 添加用户到房间
       const newPlayer = {
         openId: openId,
-        nickName: this.data.userInfo.nickName || '玩家',
-        avatarUrl: this.data.userInfo.avatarUrl || '',
+        nickName: userInfo.nickName || '玩家',
+        avatarUrl: userInfo.avatarUrl || '/images/default-avatar.png', // 确保有默认头像
         score: 0,
         joinTime: new Date()
       };
@@ -269,13 +362,13 @@ Page({
         }
       });
 
-      // 更新用户信息
+      // 更新用户信息到数据库
       try {
         await wx.cloud.database().collection('users').doc(openId).set({
           data: {
             openId: openId,
-            nickName: this.data.userInfo.nickName || '用户',
-            avatarUrl: this.data.userInfo.avatarUrl || '',
+            nickName: userInfo.nickName || '用户',
+            avatarUrl: userInfo.avatarUrl || '/images/default-avatar.png',
             totalGames: 0,
             totalScore: 0,
             lastActiveTime: new Date()
@@ -287,8 +380,8 @@ Page({
           data: {
             _id: openId,
             openId: openId,
-            nickName: this.data.userInfo.nickName || '用户',
-            avatarUrl: this.data.userInfo.avatarUrl || '',
+            nickName: userInfo.nickName || '用户',
+            avatarUrl: userInfo.avatarUrl || '/images/default-avatar.png',
             totalGames: 0,
             totalScore: 0,
             lastActiveTime: new Date()
@@ -299,16 +392,33 @@ Page({
       // 获取更新后的房间数据
       const updatedRoomResult = await wx.cloud.database().collection('rooms').doc(roomId).get();
       
+      // 确保玩家信息完整
+      const updatedRoomData = updatedRoomResult.data;
+      const currentPlayer = updatedRoomData.players.find(p => p.openId === openId);
+      if (currentPlayer) {
+        // 确保玩家头像和昵称不为空
+        if (!currentPlayer.avatarUrl) {
+          currentPlayer.avatarUrl = '/images/default-avatar.png';
+        }
+        if (!currentPlayer.nickName) {
+          currentPlayer.nickName = '玩家' + Math.floor(Math.random() * 900) + 100;
+        }
+      }
+      
+      // 使用setData更新UI，确保正确显示用户信息
       this.setData({
         roomId: roomId,
-        roomData: updatedRoomResult.data
+        roomData: updatedRoomData,
+        userInfo: userInfo // 同时更新页面用户信息
       });
       
-      // 检查是否存在台位/茶水玩家
-      await this.checkTeaServiceStatus(updatedRoomResult.data);
-      
-      // 开始监听房间数据
-      this.watchRoomData();
+      // 添加延迟确保UI正确刷新
+      setTimeout(() => {
+        // 检查是否存在台位/茶水玩家
+        this.checkTeaServiceStatus(updatedRoomData);
+        // 开始监听房间数据
+        this.watchRoomData();
+      }, 100);
     } catch (error) {
       console.error('加入房间失败:', error);
       wx.showToast({
@@ -323,40 +433,46 @@ Page({
 
   /**
    * 生成小程序码 - 简化实现，直接使用本地默认图片
+   * @returns {Promise} 操作完成的Promise
    */
   generateQRCode() {
-    try {
-      // 如果没有roomId，不执行生成
-      if (!this.data.roomId) {
-        console.error('房间ID未设置');
+    return new Promise((resolve) => {
+      try {
+        // 如果没有roomId，不执行生成
+        if (!this.data.roomId) {
+          console.error('房间ID未设置');
+          wx.showToast({
+            title: '房间ID未设置，无法生成二维码',
+            icon: 'none'
+          });
+          resolve(false);
+          return;
+        }
+        
+        // 直接使用本地默认二维码图片作为解决方案
+        this.setData({
+          qrcodeUrl: '/images/小程序码.jpg',
+          // 存储房间ID，用于在弹窗中显示
+          currentRoomId: this.data.roomId
+        });
+        
+        console.log('使用本地默认二维码图片');
+        resolve(true);
+        
+      } catch (error) {
+        console.error('生成小程序码失败:', error);
+        // 出错时使用默认图片
+        this.setData({
+          qrcodeUrl: '/images/小程序码.jpg',
+          currentRoomId: this.data.roomId || ''
+        });
         wx.showToast({
-          title: '房间ID未设置，无法生成二维码',
+          title: '二维码生成失败，显示备用图片',
           icon: 'none'
         });
-        return;
+        resolve(false);
       }
-      
-      // 直接使用本地默认二维码图片作为解决方案
-      this.setData({
-        qrcodeUrl: '/images/小程序码.jpg',
-        // 存储房间ID，用于在弹窗中显示
-        currentRoomId: this.data.roomId
-      });
-      
-      console.log('使用本地默认二维码图片');
-      
-    } catch (error) {
-      console.error('生成小程序码失败:', error);
-      // 出错时使用默认图片
-      this.setData({
-        qrcodeUrl: '/images/小程序码.jpg',
-        currentRoomId: this.data.roomId || ''
-      });
-      wx.showToast({
-        title: '二维码生成失败，显示备用图片',
-        icon: 'none'
-      });
-    }
+    });
   },
 
   /**
@@ -504,9 +620,54 @@ Page({
    * 监听房间数据变化
    */
   watchRoomData() {
+    // 清除之前的监听
+    if (this.watcher) {
+      this.watcher.close();
+      this.watcher = null;
+    }
+    
     const watcher = db.collection('rooms').doc(this.data.roomId).watch({
       onChange: async (snapshot) => {
         console.log('房间数据更新:', snapshot.docs);
+        
+        // 检查房间是否被删除（docs长度为0表示文档被删除）
+        if (snapshot.docs.length === 0) {
+          console.log('房间已被结算删除');
+          // 查找对应的结算记录
+          try {
+            const recordResult = await db.collection('records')
+              .where({ roomId: this.data.roomId })
+              .orderBy('settlementTime', 'desc')
+              .limit(1)
+              .get();
+            
+            if (recordResult.data && recordResult.data.length > 0) {
+              const settlementData = recordResult.data[0];
+              // 跳转到结算页面，使用redirectTo替换当前页面
+              wx.redirectTo({
+                url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
+                  roomId: settlementData.roomId,
+                  roomName: settlementData.roomName,
+                  players: settlementData.players,
+                  rate: settlementData.rate || 1
+                }))}`
+              });
+            } else {
+              // 如果找不到记录，也跳转到结算页面
+              wx.redirectTo({
+                url: `/pages/settlement/settlement?roomClosed=true`
+              });
+            }
+          } catch (error) {
+            console.error('查找结算记录失败:', error);
+            // 如果找不到记录，也跳转到结算页面
+            wx.redirectTo({
+              url: `/pages/settlement/settlement?roomClosed=true`
+            });
+          }
+          return;
+        }
+        
         if (snapshot.docs.length > 0) {
           const updatedRoomData = snapshot.docs[0];
           this.setData({
@@ -535,8 +696,41 @@ Page({
           }
         }
       },
-      onError: (error) => {
+      onError: async (error) => {
         console.error('监听房间数据失败:', error);
+        // 检查错误类型，如果是因为房间不存在导致的错误，可能是房间已被删除
+        if (error.errMsg && (error.errMsg.includes('document not exist') || error.errMsg.includes('找不到该记录'))) {
+          console.log('房间可能已被结算删除');
+          // 尝试查找结算记录
+          try {
+            const recordResult = await db.collection('records')
+              .where({ roomId: this.data.roomId })
+              .orderBy('settlementTime', 'desc')
+              .limit(1)
+              .get();
+            
+            if (recordResult.data && recordResult.data.length > 0) {
+              const settlementData = recordResult.data[0];
+              wx.redirectTo({
+                url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
+                  roomId: settlementData.roomId,
+                  roomName: settlementData.roomName,
+                  players: settlementData.players,
+                  rate: settlementData.rate || 1
+                }))}`
+              });
+            } else {
+              wx.redirectTo({
+                url: `/pages/settlement/settlement?roomClosed=true`
+              });
+            }
+          } catch (searchError) {
+            console.error('搜索结算记录失败:', searchError);
+            wx.redirectTo({
+              url: `/pages/settlement/settlement?roomClosed=true`
+            });
+          }
+        }
       }
     });
 
@@ -795,31 +989,119 @@ Page({
   /**
    * 确认结算
    */
-  confirmSettlement() {
-    const { rate } = this.data.settlementModal;
-    
-    // 验证倍率输入
-    let rateValue = parseFloat(rate);
-    if (!rate || isNaN(rateValue) || rateValue <= 0) {
-      wx.showToast({
-        title: '请输入有效倍率',
-        icon: 'none'
+  async confirmSettlement() {
+    try {
+      const { rate } = this.data.settlementModal;
+      
+      // 验证倍率输入
+      let rateValue = parseFloat(rate);
+      if (!rate || isNaN(rateValue) || rateValue <= 0) {
+        wx.showToast({
+          title: '请输入有效倍率',
+          icon: 'none'
+        });
+        return;
+      }
+
+      // 准备结算数据
+      const settlementData = {
+        roomId: this.data.roomId,
+        roomName: this.data.roomData.roomName,
+        roomNumber: this.data.roomData.roomNumber,
+        creatorOpenId: this.data.roomData.creatorOpenId,
+        createTime: this.data.roomData.createTime,
+        settlementTime: new Date(),
+        players: this.data.roomData.players,
+        rate: rateValue,
+        teaServiceScore: this.data.roomData.teaServiceScore || 0
+      };
+
+      // 显示加载提示
+      wx.showLoading({
+        title: '正在结算...',
+        mask: true
       });
-      return;
+
+      // 1. 保存结算记录到records集合
+      const recordResult = await db.collection('records').add({
+        data: settlementData
+      });
+      console.log('结算记录保存成功，记录ID:', recordResult._id);
+      
+      // 2. 隐藏结算弹窗
+      this.hideSettlementModal();
+      
+      // 3. 跳转到结算页面 - 先跳转再删除房间，避免闪烁
+      // 使用更直接的方式跳转，确保不会闪烁到其他页面
+      wx.hideLoading();
+      
+      // 先删除房间记录，避免异步操作导致的问题
+      try {
+        // 确保先删除房间记录
+        await db.collection('rooms').doc(this.data.roomId).remove();
+        console.log('房间记录删除成功');
+        
+        // 删除成功后再跳转结算页面
+        wx.redirectTo({
+          url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
+            roomId: settlementData.roomId,
+            roomName: settlementData.roomName,
+            players: settlementData.players,
+            rate: settlementData.rate,
+            recordId: recordResult._id
+          }))}`,
+          success: () => {
+            console.log('跳转结算页面成功');
+          },
+          fail: (redirectError) => {
+            console.error('跳转结算页面失败:', redirectError);
+            // 如果跳转失败，尝试使用reLaunch强制跳转
+            wx.reLaunch({
+              url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
+                roomId: settlementData.roomId,
+                roomName: settlementData.roomName,
+                players: settlementData.players,
+                rate: settlementData.rate,
+                recordId: recordResult._id
+              }))}`
+            });
+          }
+        });
+      } catch (removeError) {
+        console.error('删除房间记录失败:', removeError);
+        // 即使删除失败，也尝试跳转到结算页面
+        wx.redirectTo({
+          url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
+            roomId: settlementData.roomId,
+            roomName: settlementData.roomName,
+            players: settlementData.players,
+            rate: settlementData.rate,
+            recordId: recordResult._id
+          }))}`
+        });
+      }
+    } catch (error) {
+      console.error('结算操作失败:', error);
+      wx.hideLoading();
+      
+      // 根据不同错误类型显示不同提示
+      if (error.errMsg && error.errMsg.includes('collection.add')) {
+        wx.showToast({
+          title: '保存结算记录失败',
+          icon: 'error'
+        });
+      } else if (error.errMsg && error.errMsg.includes('document.remove')) {
+        wx.showToast({
+          title: '删除房间记录失败',
+          icon: 'error'
+        });
+      } else {
+        wx.showToast({
+          title: '结算失败，请重试',
+          icon: 'error'
+        });
+      }
     }
-
-    // 跳转到结算页面
-    const data = {
-      roomId: this.data.roomId,
-      roomName: this.data.roomData.roomName,
-      players: this.data.roomData.players,
-      rate: rateValue
-    };
-
-    this.hideSettlementModal();
-    wx.navigateTo({
-      url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify(data))}`
-    });
   },
 
   /**
