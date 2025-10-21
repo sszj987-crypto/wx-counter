@@ -2,7 +2,7 @@
  * 可乐计分器房间页面
  * 支持实时同步、给分功能
  */
-const db = wx.cloud.database()
+const db = wx.cloud.database();
 
 Page({
   /**
@@ -35,43 +35,43 @@ Page({
    * 生命周期函数--监听页面加载
    */
   onLoad(options) {
-    console.log('房间页面加载，参数:', options)
-    const { roomId, mode } = options
-    const app = getApp()
+    console.log('房间页面加载，参数:', options);
+    const { roomId, mode } = options;
+    const app = getApp();
     
     // 获取用户信息
-    let userInfo = app.globalData.userInfo
+    let userInfo = app.globalData.userInfo;
     if (!userInfo) {
-      console.log('没有用户信息，生成默认信息')
+      console.log('没有用户信息，生成默认信息');
       // 如果没有用户信息，生成默认信息
       userInfo = {
         nickName: '玩家' + Math.floor(Math.random() * 900) + 100,
         avatarUrl: '/images/default-avatar.png'
-      }
-      app.globalData.userInfo = userInfo
+      };
+      app.globalData.userInfo = userInfo;
     }
-    console.log('房间页面用户信息:', userInfo)
+    console.log('房间页面用户信息:', userInfo);
 
     this.setData({
       userInfo: userInfo,
       currentUserOpenId: '' // 将在云函数中获取
-    })
+    });
 
     if (mode === 'create') {
-      console.log('创建房间模式')
-      this.createRoom()
+      console.log('创建房间模式');
+      this.createRoom();
     } else if (roomId) {
-      console.log('加入房间模式，房间ID:', roomId)
-      this.joinRoom(roomId)
+      console.log('加入房间模式，房间ID:', roomId);
+      this.joinRoom(roomId);
     } else {
-      console.log('房间信息错误')
+      console.log('房间信息错误');
       wx.showToast({
         title: '房间信息错误',
         icon: 'error'
-      })
+      });
       setTimeout(() => {
-        wx.navigateBack()
-      }, 1500)
+        wx.navigateBack();
+      }, 1500);
     }
   },
 
@@ -79,33 +79,33 @@ Page({
    * 创建房间
    */
   async createRoom() {
-    console.log('开始创建房间')
-    this.setData({ isCreating: true })
+    console.log('开始创建房间');
+    this.setData({ isCreating: true });
     
     try {
       // 确保用户信息存在
       if (!this.data.userInfo) {
-        throw new Error('用户信息未初始化')
+        throw new Error('用户信息未初始化');
       }
 
       // 获取当前用户openId
       const { result: userInfo } = await wx.cloud.callFunction({
         name: 'getOpenId'
-      })
-      const openId = userInfo.openId
-      console.log('当前用户openId:', openId)
+      });
+      const openId = userInfo.openId;
+      console.log('当前用户openId:', openId);
       
       // 更新currentUserOpenId
       this.setData({
         currentUserOpenId: openId
-      })
+      });
 
       // 生成唯一房间ID
-      const roomId = this.generateRoomId()
-      console.log('生成的房间ID:', roomId)
+      const roomId = this.generateRoomId();
+      console.log('生成的房间ID:', roomId);
       
       // 生成房间编号（纯数字）
-      const roomNumber = Math.floor(Math.random() * 9000) + 1000
+      const roomNumber = Math.floor(Math.random() * 9000) + 1000;
       
       // 房间数据
       const roomData = {
@@ -122,19 +122,20 @@ Page({
           joinTime: new Date()
         }],
         status: 'active',
-        totalRounds: 0
-      }
-      console.log('房间数据:', roomData)
+        totalRounds: 0,
+        teaServiceScore: 0 // 新增：台位分数记忆
+      };
+      console.log('房间数据:', roomData);
 
       // 创建房间
-      console.log('开始创建房间到数据库')
+      console.log('开始创建房间到数据库');
       await wx.cloud.database().collection('rooms').add({
         data: roomData
-      })
-      console.log('房间创建成功')
+      });
+      console.log('房间创建成功');
 
       // 更新用户信息
-      console.log('开始更新用户信息')
+      console.log('开始更新用户信息');
       try {
         await wx.cloud.database().collection('users').doc(openId).set({
           data: {
@@ -145,10 +146,10 @@ Page({
             totalScore: 0,
             lastActiveTime: new Date()
           }
-        })
-        console.log('用户信息更新成功')
+        });
+        console.log('用户信息更新成功');
       } catch (error) {
-        console.log('用户信息更新失败，尝试创建新用户:', error)
+        console.log('用户信息更新失败，尝试创建新用户:', error);
         // 如果用户不存在则创建
         await wx.cloud.database().collection('users').add({
           data: {
@@ -160,41 +161,44 @@ Page({
             totalScore: 0,
             lastActiveTime: new Date()
           }
-        })
-        console.log('新用户创建成功')
+        });
+        console.log('新用户创建成功');
       }
 
-      console.log('房间创建成功，房间ID:', roomId, '房间数据:', roomData)
+      console.log('房间创建成功，房间ID:', roomId, '房间数据:', roomData);
       this.setData({
         roomId: roomId,
         roomData: roomData,
         isCreating: false
-      })
+      });
       
       // 生成小程序码
       this.generateQRCode().then(() => {
         // 自动显示二维码弹窗
-        this.showQRCodeModal()
-      })
+        this.showQRCodeModal();
+      });
       
       // 生成小程序码（加入房间时不自动显示弹窗）
-      this.generateQRCode()
+      this.generateQRCode();
+      
+      // 检查台位状态
+      await this.checkTeaServiceStatus(roomData);
       
       // 开始监听房间数据
-      this.watchRoomData()
+      this.watchRoomData();
     } catch (error) {
-      console.error('创建房间失败:', error)
+      console.error('创建房间失败:', error);
       wx.showToast({
         title: error.message || '创建房间失败',
         icon: 'error',
         duration: 2000
-      })
-      this.setData({ isCreating: false })
+      });
+      this.setData({ isCreating: false });
       
       // 延迟返回上一页
       setTimeout(() => {
-        wx.navigateBack()
-      }, 2000)
+        wx.navigateBack();
+      }, 2000);
     }
   },
 
@@ -206,46 +210,48 @@ Page({
       // 获取当前用户openId
       const { result: userInfoResult } = await wx.cloud.callFunction({
         name: 'getOpenId'
-      })
-      const openId = userInfoResult.openId
-      console.log('当前用户openId:', openId)
+      });
+      const openId = userInfoResult.openId;
+      console.log('当前用户openId:', openId);
       
       // 更新currentUserOpenId
       this.setData({
         currentUserOpenId: openId
-      })
+      });
 
       // 查找房间
-      console.log('查找房间，房间ID:', roomId)
-      const roomResult = await wx.cloud.database().collection('rooms').doc(roomId).get()
+      console.log('查找房间，房间ID:', roomId);
+      const roomResult = await wx.cloud.database().collection('rooms').doc(roomId).get();
       
       if (!roomResult.data) {
-        throw new Error('房间不存在')
+        throw new Error('房间不存在');
       }
 
-      const room = roomResult.data
-      console.log('找到房间:', room)
+      const room = roomResult.data;
+      console.log('找到房间:', room);
 
       // 检查房间状态
       if (room.status !== 'active') {
-        throw new Error('房间已关闭')
+        throw new Error('房间已关闭');
       }
 
       // 检查房间人数限制
       if (room.players.length >= 30) {
-        throw new Error('房间已满（最多30人）')
+        throw new Error('房间已满（最多30人）');
       }
 
       // 检查用户是否已在房间中
-      const existingPlayer = room.players.find(player => player.openId === openId)
+      const existingPlayer = room.players.find(player => player.openId === openId);
       if (existingPlayer) {
-        console.log('用户已在房间中')
+        console.log('用户已在房间中');
         this.setData({
           roomId: roomId,
           roomData: room
-        })
-        this.watchRoomData()
-        return
+        });
+        // 检查是否存在台位/茶水玩家
+        await this.checkTeaServiceStatus(room);
+        this.watchRoomData();
+        return;
       }
 
       // 添加用户到房间
@@ -255,13 +261,13 @@ Page({
         avatarUrl: this.data.userInfo.avatarUrl || '',
         score: 0,
         joinTime: new Date()
-      }
+      };
 
       await wx.cloud.database().collection('rooms').doc(roomId).update({
         data: {
           players: wx.cloud.database().command.push(newPlayer)
         }
-      })
+      });
 
       // 更新用户信息
       try {
@@ -274,9 +280,9 @@ Page({
             totalScore: 0,
             lastActiveTime: new Date()
           }
-        })
+        });
       } catch (error) {
-        console.log('用户信息更新失败，尝试创建新用户:', error)
+        console.log('用户信息更新失败，尝试创建新用户:', error);
         await wx.cloud.database().collection('users').add({
           data: {
             _id: openId,
@@ -287,28 +293,31 @@ Page({
             totalScore: 0,
             lastActiveTime: new Date()
           }
-        })
+        });
       }
 
       // 获取更新后的房间数据
-      const updatedRoomResult = await wx.cloud.database().collection('rooms').doc(roomId).get()
+      const updatedRoomResult = await wx.cloud.database().collection('rooms').doc(roomId).get();
       
       this.setData({
         roomId: roomId,
         roomData: updatedRoomResult.data
-      })
+      });
+      
+      // 检查是否存在台位/茶水玩家
+      await this.checkTeaServiceStatus(updatedRoomResult.data);
       
       // 开始监听房间数据
-      this.watchRoomData()
+      this.watchRoomData();
     } catch (error) {
-      console.error('加入房间失败:', error)
+      console.error('加入房间失败:', error);
       wx.showToast({
         title: '加入房间失败',
         icon: 'error'
-      })
+      });
       setTimeout(() => {
-        wx.navigateBack()
-      }, 1500)
+        wx.navigateBack();
+      }, 1500);
     }
   },
 
@@ -337,24 +346,16 @@ Page({
       console.log('使用本地默认二维码图片');
       
     } catch (error) {
-      console.error('二维码处理失败:', error);
-      // 出错时仍使用默认图片
+      console.error('生成小程序码失败:', error);
+      // 出错时使用默认图片
       this.setData({
         qrcodeUrl: '/images/小程序码.jpg',
         currentRoomId: this.data.roomId || ''
       });
-    }
-  },
-    } catch (error) {
-      console.error('生成小程序码失败:', error);
-      // 出错时使用默认图片
-      this.setData({
-        qrcodeUrl: '/images/小程序码.jpg'
-      })
       wx.showToast({
         title: '二维码生成失败，显示备用图片',
         icon: 'none'
-      })
+      });
     }
   },
 
@@ -366,15 +367,15 @@ Page({
     if (this.data.roomId) {
       this.setData({
         currentRoomId: this.data.roomId
-      })
+      });
     }
     // 确保二维码已生成
     if (!this.data.qrcodeUrl) {
-      this.generateQRCode()
+      this.generateQRCode();
     }
     this.setData({
       'qrcodeModal.show': true
-    })
+    });
   },
 
   /**
@@ -383,7 +384,7 @@ Page({
   hideQRCodeModal() {
     this.setData({
       'qrcodeModal.show': false
-    })
+    });
   },
 
   /**
@@ -391,7 +392,7 @@ Page({
    */
   async toggleTeaService() {
     try {
-      const newState = !this.data.isTeaServiceEnabled
+      const newState = !this.data.isTeaServiceEnabled;
       
       if (newState) {
         // 打开开关，添加台位/茶水玩家
@@ -399,44 +400,103 @@ Page({
           nickName: '台位/茶水',
           avatarUrl: '/images/default-avatar.png',
           openId: 'tea_service_' + Date.now(),
-          score: 0
-        }
+          score: this.data.roomData.teaServiceScore || 0 // 恢复之前记忆的分数
+        };
         
-        const players = [...this.data.roomData.players, teaServicePlayer]
+        const players = [...this.data.roomData.players, teaServicePlayer];
         
         await db.collection('rooms').doc(this.data.roomId).update({
           data: {
             players: players
           }
-        })
+        });
         
         this.setData({
           isTeaServiceEnabled: true,
           teaServicePlayerId: teaServicePlayer.openId
-        })
+        });
       } else {
-        // 关闭开关，移除台位/茶水玩家
+        // 关闭开关，先保存当前台位分数，再移除台位/茶水玩家
+        const teaServicePlayer = this.data.roomData.players.find(
+          player => player.openId === this.data.teaServicePlayerId
+        );
+        
+        // 记忆当前台位分数
+        const teaServiceScore = teaServicePlayer ? teaServicePlayer.score : 0;
+        
         const players = this.data.roomData.players.filter(
           player => player.openId !== this.data.teaServicePlayerId
-        )
+        );
         
         await db.collection('rooms').doc(this.data.roomId).update({
           data: {
-            players: players
+            players: players,
+            teaServiceScore: teaServiceScore // 保存分数到房间数据中
           }
-        })
+        });
         
         this.setData({
           isTeaServiceEnabled: false,
           teaServicePlayerId: null
-        })
+        });
       }
     } catch (error) {
-      console.error('切换台位/茶水开关失败:', error)
+      console.error('切换台位/茶水开关失败:', error);
       wx.showToast({
         title: '操作失败',
         icon: 'error'
-      })
+      });
+    }
+  },
+
+  /**
+   * 检查台位/茶水玩家状态
+   */
+  async checkTeaServiceStatus(roomData) {
+    if (!roomData || !roomData.players) return;
+    
+    // 初始化teaServiceScore字段（如果不存在）
+    if (roomData.teaServiceScore === undefined) {
+      try {
+        await db.collection('rooms').doc(this.data.roomId).update({
+          data: {
+            teaServiceScore: 0
+          }
+        });
+      } catch (error) {
+        console.error('初始化台位分数字段失败:', error);
+      }
+    }
+    
+    // 查找台位/茶水玩家（通过nickName或openId前缀识别）
+    const teaServicePlayer = roomData.players.find(player => 
+      player.nickName === '台位/茶水' || player.openId.startsWith('tea_service_')
+    );
+    
+    if (teaServicePlayer) {
+      console.log('检测到台位/茶水玩家');
+      this.setData({
+        isTeaServiceEnabled: true,
+        teaServicePlayerId: teaServicePlayer.openId
+      });
+      
+      // 确保teaServiceScore与台位玩家当前分数同步
+      if (teaServicePlayer.score !== roomData.teaServiceScore) {
+        try {
+          await db.collection('rooms').doc(this.data.roomId).update({
+            data: {
+              teaServiceScore: teaServicePlayer.score
+            }
+          });
+        } catch (error) {
+          console.error('同步台位分数失败:', error);
+        }
+      }
+    } else {
+      this.setData({
+        isTeaServiceEnabled: false,
+        teaServicePlayerId: null
+      });
     }
   },
 
@@ -445,21 +505,43 @@ Page({
    */
   watchRoomData() {
     const watcher = db.collection('rooms').doc(this.data.roomId).watch({
-      onChange: (snapshot) => {
-        console.log('房间数据更新:', snapshot.docs)
+      onChange: async (snapshot) => {
+        console.log('房间数据更新:', snapshot.docs);
         if (snapshot.docs.length > 0) {
+          const updatedRoomData = snapshot.docs[0];
           this.setData({
-            roomData: snapshot.docs[0]
-          })
+            roomData: updatedRoomData
+          });
+          // 检查台位/茶水状态
+          await this.checkTeaServiceStatus(updatedRoomData);
+          
+          // 如果台位/茶水玩家存在，且分数发生变化，同步更新teaServiceScore
+          if (updatedRoomData.isTeaServiceEnabled || this.data.isTeaServiceEnabled) {
+            const teaServicePlayer = updatedRoomData.players.find(
+              player => player.nickName === '台位/茶水' || player.openId.startsWith('tea_service_')
+            );
+            
+            if (teaServicePlayer && teaServicePlayer.score !== updatedRoomData.teaServiceScore) {
+              try {
+                await db.collection('rooms').doc(this.data.roomId).update({
+                  data: {
+                    teaServiceScore: teaServicePlayer.score
+                  }
+                });
+              } catch (error) {
+                console.error('同步台位分数失败:', error);
+              }
+            }
+          }
         }
       },
       onError: (error) => {
-        console.error('监听房间数据失败:', error)
+        console.error('监听房间数据失败:', error);
       }
-    })
+    });
 
     // 页面卸载时关闭监听
-    this.watcher = watcher
+    this.watcher = watcher;
   },
 
   /**
@@ -467,15 +549,15 @@ Page({
    */
   showTransferModal(e) {
     try {
-      const { player } = e.currentTarget.dataset
+      const { player } = e.currentTarget.dataset;
       
       // 不能给自己给分
       if (player && player.openId === this.data.currentUserOpenId) {
         wx.showToast({
           title: '不能给自己给分',
           icon: 'none'
-        })
-        return
+        });
+        return;
       }
 
       // 重置并显示弹窗
@@ -483,18 +565,18 @@ Page({
         'transferModal.show': true,
         'transferModal.targetPlayer': player,
         'transferModal.score': ''
-      })
+      });
       
       // 短暂延迟后尝试聚焦输入框（如果需要）
       setTimeout(() => {
         try {
           // 微信小程序不支持直接DOM操作，依赖focus属性自动聚焦
         } catch (err) {
-          console.log('聚焦尝试失败，但不会影响功能')
+          console.log('聚焦尝试失败，但不会影响功能');
         }
-      }, 100)
+      }, 100);
     } catch (error) {
-      console.error('显示给分弹窗失败:', error)
+      console.error('显示给分弹窗失败:', error);
     }
   },
 
@@ -506,9 +588,8 @@ Page({
       'transferModal.show': false,
       'transferModal.targetPlayer': null,
       'transferModal.score': ''
-    })
+    });
   },
-
 
   /**
    * 输入分数 - 带最大值限制
@@ -548,14 +629,14 @@ Page({
    * 确认给分
    */
   async confirmTransfer() {
-    const { targetPlayer, score } = this.data.transferModal
+    const { targetPlayer, score } = this.data.transferModal;
     
     if (!score || score <= 0) {
       wx.showToast({
         title: '请输入有效分数',
         icon: 'none'
-      })
-      return
+      });
+      return;
     }
 
     try {
@@ -566,23 +647,23 @@ Page({
           toPlayerOpenId: targetPlayer.openId,
           score: parseInt(score)
         }
-      })
+      });
 
       if (result.result.success) {
         wx.showToast({
           title: '给分成功',
           icon: 'success'
-        })
-        this.hideTransferModal()
+        });
+        this.hideTransferModal();
       } else {
-        throw new Error(result.result.error)
+        throw new Error(result.result.error);
       }
     } catch (error) {
-      console.error('给分失败:', error)
+      console.error('给分失败:', error);
       wx.showToast({
         title: error.message || '给分失败',
         icon: 'error'
-      })
+      });
     }
   },
 
@@ -594,7 +675,7 @@ Page({
       title: `房间 ${this.data.roomData?.roomName || this.data.roomId} - 可乐计分器`,
       path: `/pages/room/room?roomId=${this.data.roomId}`,
       imageUrl: this.data.qrcodeUrl
-    }
+    };
   },
 
   /**
@@ -602,9 +683,9 @@ Page({
    * @returns {string} 房间ID
    */
   generateRoomId() {
-    const timestamp = Date.now().toString(36)
-    const random = Math.random().toString(36).substr(2, 6)
-    return `${timestamp}${random}`.toUpperCase()
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substr(2, 6);
+    return `${timestamp}${random}`.toUpperCase();
   },
 
   /**
@@ -624,48 +705,53 @@ Page({
   },
   
   /**
-   * 生命周期函数--监听页面卸载
+   * 跳转到给分详情页面
    */
-  // 跳转到给分详情页面
   navigateToScoreDetails() {
     if (!this.data.roomId || !this.data.roomData) {
       wx.showToast({
         title: '房间信息错误',
         icon: 'error'
-      })
-      return
+      });
+      return;
     }
 
     wx.navigateTo({
       url: `/pages/score-details/score-details?roomId=${this.data.roomId}&roomName=${encodeURIComponent(this.data.roomData.roomName || '房间')}`
-    })
+    });
   },
 
-  // 显示结算弹窗
+  /**
+   * 显示结算弹窗
+   */
   showSettlementModal() {
     if (!this.data.roomId || !this.data.roomData) {
       wx.showToast({
         title: '房间信息错误',
         icon: 'error'
-      })
-      return
+      });
+      return;
     }
 
     this.setData({
       'settlementModal.show': true,
       'settlementModal.rate': '1'
-    })
+    });
   },
 
-  // 隐藏结算弹窗
+  /**
+   * 隐藏结算弹窗
+   */
   hideSettlementModal() {
     this.setData({
       'settlementModal.show': false,
       'settlementModal.rate': '1'
-    })
+    });
   },
 
-  // 处理倍率输入
+  /**
+   * 处理倍率输入
+   */
   onRateInput(e) {
     // 检查事件参数是否有效
     if (!e || !e.detail) {
@@ -706,18 +792,20 @@ Page({
     });
   },
 
-  // 确认结算
+  /**
+   * 确认结算
+   */
   confirmSettlement() {
-    const { rate } = this.data.settlementModal
+    const { rate } = this.data.settlementModal;
     
     // 验证倍率输入
-    let rateValue = parseFloat(rate)
+    let rateValue = parseFloat(rate);
     if (!rate || isNaN(rateValue) || rateValue <= 0) {
       wx.showToast({
         title: '请输入有效倍率',
         icon: 'none'
-      })
-      return
+      });
+      return;
     }
 
     // 跳转到结算页面
@@ -726,18 +814,21 @@ Page({
       roomName: this.data.roomData.roomName,
       players: this.data.roomData.players,
       rate: rateValue
-    }
+    };
 
-    this.hideSettlementModal()
+    this.hideSettlementModal();
     wx.navigateTo({
       url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify(data))}`
-    })
+    });
   },
 
+  /**
+   * 生命周期函数--监听页面卸载
+   */
   onUnload() {
     // 关闭数据监听
     if (this.watcher) {
-      this.watcher.close()
+      this.watcher.close();
     }
   }
-})
+});
