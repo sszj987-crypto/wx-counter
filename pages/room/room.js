@@ -478,22 +478,62 @@ Page({
   },
 
   /**
-   * 显示二维码弹窗
+   * 显示二维码弹窗 - 修复版，添加详细的错误处理
    */
-  showQRCodeModal() {
-    // 确保设置了currentRoomId
-    if (this.data.roomId) {
-      this.setData({
-        currentRoomId: this.data.roomId
+  async showQRCodeModal() {
+    try {
+      wx.showLoading({
+        title: '生成房间二维码...',
+      });
+      
+      // 调用云函数生成房间二维码
+      const result = await wx.cloud.callFunction({
+        name: 'generateQRCode',
+        data: {
+          roomId: this.data.roomId
+        }
+      });
+      
+      wx.hideLoading();
+      
+      // 详细检查返回结果
+      if (result && result.result) {
+        if (result.result.success) {
+          // 更新二维码URL并显示弹窗
+          this.setData({
+            qrcodeUrl: result.result.qrcodeUrl,
+            currentRoomId: this.data.roomId,
+            'qrcodeModal.show': true,
+            // 开发环境提示信息
+            qrcodeEnvironmentInfo: '开发环境中，二维码会先跳转至首页再自动转跳至房间页面'
+          });
+        } else {
+          // 使用云函数返回的详细错误信息
+          throw new Error(result.result.error || '生成房间二维码失败');
+        }
+      } else {
+        throw new Error('云函数调用失败，未返回预期结果');
+      }
+    } catch (error) {
+      wx.hideLoading();
+      console.error('生成房间二维码失败:', error);
+      
+      // 提供详细的错误信息，特别是针对41030（页面路径无效）错误
+      let errorMessage = '生成二维码失败';
+      if (error && error.errCode === 41030) {
+        errorMessage = '页面路径无效，请检查页面配置或确认已发布';
+      } else if (error && error.errCode === -604101) {
+        errorMessage = '权限错误，请重新部署云函数并检查权限配置';
+      } else if (error && error.message) {
+        errorMessage = error.message;
+      }
+      
+      wx.showToast({
+        title: errorMessage,
+        icon: 'none',
+        duration: 3000 // 增加显示时间，让用户有足够时间阅读详细错误
       });
     }
-    // 确保二维码已生成
-    if (!this.data.qrcodeUrl) {
-      this.generateQRCode();
-    }
-    this.setData({
-      'qrcodeModal.show': true
-    });
   },
 
   /**
@@ -741,7 +781,7 @@ Page({
   },
 
   /**
-   * 显示给分弹窗 - 修复版本
+   * 显示给分弹窗 - 基础可靠版，确保键盘弹出
    */
   showTransferModal(e) {
     try {
@@ -756,20 +796,31 @@ Page({
         return;
       }
 
-      // 重置并显示弹窗
+      // 重置弹窗状态，设置为不可见
       this.setData({
-        'transferModal.show': true,
+        'transferModal.show': false,
         'transferModal.targetPlayer': player,
-        'transferModal.score': ''
+        'transferModal.score': '',
+        'transferModal.focusTrigger': false
       });
       
-      // 短暂延迟后尝试聚焦输入框（如果需要）
+      // 强制下一个事件循环再显示弹窗，确保DOM完全重置
       setTimeout(() => {
-        try {
-          // 微信小程序不支持直接DOM操作，依赖focus属性自动聚焦
-        } catch (err) {
-          console.log('聚焦尝试失败，但不会影响功能');
-        }
+        // 显示弹窗
+        this.setData({
+          'transferModal.show': true
+        }, () => {
+          console.log('弹窗已显示，开始聚焦输入框');
+          
+          // 在弹窗完全渲染后，使用较长延迟确保DOM更新完成
+          setTimeout(() => {
+            console.log('触发输入框聚焦');
+            // 通过切换focusTrigger状态来强制触发input的focus属性
+            this.setData({
+              'transferModal.focusTrigger': true
+            });
+          }, 300); // 使用300ms确保在各种设备上都有足够时间渲染
+        });
       }, 100);
     } catch (error) {
       console.error('显示给分弹窗失败:', error);
@@ -783,7 +834,8 @@ Page({
     this.setData({
       'transferModal.show': false,
       'transferModal.targetPlayer': null,
-      'transferModal.score': ''
+      'transferModal.score': '',
+      'transferModal.focusTrigger': false
     });
   },
 

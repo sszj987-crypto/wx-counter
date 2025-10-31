@@ -97,14 +97,7 @@ Page({
     })
   },
 
-  /**
-   * 跳转到使用说明页面
-   */
-  goToHelp() {
-    wx.navigateTo({
-      url: '/pages/help/help'
-    })
-  },
+
 
   /**
    * 跳转到建议反馈页面
@@ -118,17 +111,51 @@ Page({
   /**
    * 点击分享按钮显示小程序码
    */
-  onShareTap() {
-    // 显示小程序码弹窗
-    this.setData({
-      showQrcode: true
-    })
-    
-    // 同时打开原生分享菜单选项
-    wx.showShareMenu({
-      withShareTicket: true,
-      menus: ['shareAppMessage', 'shareTimeline']
-    })
+  async onShareTap() {
+    try {
+      // 生成进入小程序主页的二维码
+      wx.showLoading({
+        title: '生成小程序码...',
+      })
+      
+      const result = await wx.cloud.callFunction({
+        name: 'generateQRCode',
+        data: {
+          // 不提供roomId，生成进入主页的二维码
+          page: 'pages/home/home'
+        }
+      })
+      
+      wx.hideLoading()
+      
+      if (result.result.success) {
+        // 更新二维码URL并显示弹窗
+        this.setData({
+          qrcodeUrl: result.result.qrcodeUrl,
+          showQrcode: true
+        })
+      } else {
+        throw new Error(result.result.error || '生成小程序码失败')
+      }
+      
+      // 同时打开原生分享菜单选项
+      wx.showShareMenu({
+        withShareTicket: true,
+        menus: ['shareAppMessage', 'shareTimeline']
+      })
+    } catch (error) {
+      wx.hideLoading()
+      console.error('生成小程序码失败:', error)
+      wx.showToast({
+        title: '生成小程序码失败',
+        icon: 'none'
+      })
+      
+      // 即使生成失败，也显示默认二维码
+      this.setData({
+        showQrcode: true
+      })
+    }
   },
   
   /**

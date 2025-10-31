@@ -17,10 +17,49 @@ Page({
    */
   onLoad(options) {
     console.log('主页面加载，参数:', options)
-    // 异步执行用户信息初始化，不阻塞页面显示
+    
+    // 处理从二维码扫描带来的参数
+    // 二维码参数可能在scene中，也可能直接在options中
+    let roomId = null
+    
+    // 检查是否有scene参数（从二维码扫描进入）
+    if (options.scene) {
+      console.log('检测到scene参数:', options.scene)
+      // scene参数通常是url编码的
+      try {
+        const sceneParams = decodeURIComponent(options.scene)
+        console.log('解码后的scene参数:', sceneParams)
+        
+        // 解析scene参数，查找roomId
+        if (sceneParams.includes('roomId=')) {
+          roomId = sceneParams.split('roomId=')[1]
+          console.log('从scene中解析到roomId:', roomId)
+        }
+      } catch (e) {
+        console.error('解析scene参数失败:', e)
+      }
+    } 
+    // 检查是否直接有roomId参数
+    else if (options.roomId) {
+      roomId = options.roomId
+      console.log('检测到直接的roomId参数:', roomId)
+    }
+    
+    // 无论是否有roomId参数，都先初始化用户信息
     this.initUserInfo().catch(err => {
       console.log('用户信息初始化失败，但不影响页面功能:', err)
     })
+    
+    // 如果存在有效roomId，跳转到对应房间页面
+    if (roomId) {
+      console.log('根据二维码参数跳转到房间:', roomId)
+      // 延迟跳转，确保页面有时间初始化
+      setTimeout(() => {
+        wx.navigateTo({
+          url: `/pages/room/room?roomId=${roomId}`
+        })
+      }, 300)
+    }
   },
 
   /**

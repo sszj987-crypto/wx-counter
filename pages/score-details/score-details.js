@@ -8,6 +8,26 @@ Page({
     scoreRecords: [],
     isLoading: true
   },
+  
+  /**
+   * 页面生命周期 - 监听页面卸载
+   * 添加返回功能，确保用户可以正常返回上一页
+   */
+  onUnload() {
+    // 可以在这里添加一些清理逻辑
+    console.log('给分详情页面卸载');
+  },
+  
+  /**
+   * 监听用户点击左上角返回按钮的事件
+   */
+  onBackPress() {
+    console.log('给分详情页面返回按钮点击');
+    wx.navigateBack({
+      delta: 1
+    });
+    return true;
+  },
 
   onLoad(options) {
     console.log('给分详情页面加载，参数:', options)

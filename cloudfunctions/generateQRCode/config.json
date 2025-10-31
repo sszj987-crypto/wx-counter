@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "openapi": [
+      "wxacode.getUnlimited"
+    ],
+    "actions": [
+      "cloudbase:file:put",
+      "cloudbase:file:delete",
+      "cloudbase:file:get"
+    ],
+    "scopes": [
+      "*"
+    ]
+  }
+}

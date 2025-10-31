@@ -124,11 +124,12 @@
     <view style="padding: 30rpx;">
       <text style="display: block; margin-bottom: 20rpx;">请输入分数：</text>
       <input 
+        id="scoreInput"
         type="number" 
         placeholder="0" 
         value="{{transferModal.score}}"
         bindinput="onScoreInput" 
-        focus="{{transferModal.show}}"
+        focus="{{transferModal.focusTrigger}}"
         style="width: 100%; height: 80rpx; border: 1rpx solid #ddd; border-radius: 8rpx; padding: 0 20rpx; font-size: 32rpx;"
         confirm-type="done"
         cursor="10"/>
@@ -142,21 +143,23 @@
 </view>
 
 <!-- 二维码弹窗 -->
-<view class="modal-overlay" wx:if="{{qrcodeModal.show}}" bindtap="hideQRCodeModal">
-  <view class="modal-content qrcode-modal" catchtap="">
-    <view class="modal-header">
-      <view class="modal-title">扫码加入房间</view>
-      <view class="modal-close" bindtap="hideQRCodeModal">×</view>
-    </view>
-    
-    <view class="qrcode-display">
-      <image class="large-qrcode" src="{{qrcodeUrl}}" mode="aspectFit"></image>
-      <view class="qrcode-instruction">请使用微信扫描上方二维码加入房间</view>
-      <view class="room-id-display">
-        <text class="room-id-label">房间ID:</text>
-        <text class="room-id-value">{{currentRoomId}}</text>
+  <view class="modal-overlay" wx:if="{{qrcodeModal.show}}" bindtap="hideQRCodeModal">
+    <view class="modal-content qrcode-modal" catchtap="">
+      <view class="modal-header">
+        <view class="modal-title">扫码加入房间</view>
+        <view class="modal-close" bindtap="hideQRCodeModal">×</view>
       </view>
-      <view class="qrcode-tip">如扫描无效，请手动输入上方房间ID加入</view>
+      
+      <view class="qrcode-display">
+        <image class="large-qrcode" src="{{qrcodeUrl}}" mode="aspectFit"></image>
+        <view class="qrcode-instruction">请使用微信扫描上方二维码加入房间</view>
+        <view class="room-id-display">
+          <text class="room-id-label">房间ID:</text>
+          <text class="room-id-value">{{currentRoomId}}</text>
+        </view>
+        <view class="qrcode-tip">如扫描无效，请手动输入上方房间ID加入</view>
+        <!-- 开发环境提示信息 -->
+        <view class="qrcode-env-info" wx:if="{{qrcodeEnvironmentInfo}}">{{qrcodeEnvironmentInfo}}</view>
+      </view>
     </view>
   </view>
-</view>
