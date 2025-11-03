@@ -181,7 +181,7 @@ Page({
           score: 0,
           joinTime: new Date()
         }],
-        status: 'active',
+
         totalRounds: 0,
         teaServiceScore: 0 // 新增：台位分数记忆
       };
@@ -302,10 +302,7 @@ Page({
       const room = roomResult.data;
       console.log('找到房间:', room);
 
-      // 检查房间状态
-      if (room.status !== 'active') {
-        throw new Error('房间已关闭');
-      }
+
 
       // 检查房间人数限制
       if (room.players.length >= 30) {
@@ -687,38 +684,10 @@ Page({
         // 检查房间是否被删除（docs长度为0表示文档被删除）
         if (snapshot.docs.length === 0) {
           console.log('房间已被结算删除');
-          // 查找对应的结算记录
-          try {
-            const recordResult = await db.collection('records')
-              .where({ roomId: this.data.roomId })
-              .orderBy('settlementTime', 'desc')
-              .limit(1)
-              .get();
-            
-            if (recordResult.data && recordResult.data.length > 0) {
-              const settlementData = recordResult.data[0];
-              // 跳转到结算页面，使用redirectTo替换当前页面
-              wx.redirectTo({
-                url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
-                  roomId: settlementData.roomId,
-                  roomName: settlementData.roomName,
-                  players: settlementData.players,
-                  rate: settlementData.rate || 1
-                }))}`
-              });
-            } else {
-              // 如果找不到记录，也跳转到结算页面
-              wx.redirectTo({
-                url: `/pages/settlement/settlement?roomClosed=true`
-              });
-            }
-          } catch (error) {
-            console.error('查找结算记录失败:', error);
-            // 如果找不到记录，也跳转到结算页面
-            wx.redirectTo({
-              url: `/pages/settlement/settlement?roomClosed=true`
-            });
-          }
+          // 房间已被删除，直接跳转到结算页面
+          wx.redirectTo({
+            url: `/pages/settlement/settlement?roomClosed=true`
+          });
           return;
         }
         
@@ -755,35 +724,11 @@ Page({
         // 检查错误类型，如果是因为房间不存在导致的错误，可能是房间已被删除
         if (error.errMsg && (error.errMsg.includes('document not exist') || error.errMsg.includes('找不到该记录'))) {
           console.log('房间可能已被结算删除');
-          // 尝试查找结算记录
-          try {
-            const recordResult = await db.collection('records')
-              .where({ roomId: this.data.roomId })
-              .orderBy('settlementTime', 'desc')
-              .limit(1)
-              .get();
-            
-            if (recordResult.data && recordResult.data.length > 0) {
-              const settlementData = recordResult.data[0];
-              wx.redirectTo({
-                url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
-                  roomId: settlementData.roomId,
-                  roomName: settlementData.roomName,
-                  players: settlementData.players,
-                  rate: settlementData.rate || 1
-                }))}`
-              });
-            } else {
-              wx.redirectTo({
-                url: `/pages/settlement/settlement?roomClosed=true`
-              });
-            }
-          } catch (searchError) {
-            console.error('搜索结算记录失败:', searchError);
-            wx.redirectTo({
-              url: `/pages/settlement/settlement?roomClosed=true`
-            });
-          }
+          // 房间不存在，直接跳转到结算页面
+          wx.redirectTo({
+            url: `/pages/settlement/settlement?roomClosed=true`
+          });
+          return;
         }
       }
     });
@@ -1088,39 +1033,21 @@ Page({
         mask: true
       });
 
-      // 1. 保存结算记录到records集合
-      const recordResult = await db.collection('records').add({
-        data: settlementData
-      });
-      console.log('结算记录保存成功，记录ID:', recordResult._id);
+      // 结算数据已包含在房间记录中，无需单独保存到records集合
+      console.log('结算数据将保存在房间记录中');
       
       // 2. 隐藏结算弹窗
       this.hideSettlementModal();
       
       // 3. 结算核心操作：先将房间状态更新为closed，然后删除记录
       try {
-        // 先将房间状态更新为closed
-        await db.collection('rooms').doc(this.data.roomId).update({
-          data: { status: 'closed' }
-        });
-        console.log('房间状态已更新为closed');
-        
-        // 再删除房间记录
-        await db.collection('rooms').doc(this.data.roomId).remove();
-        console.log('房间记录已成功删除');
-        
-        // 通知上一个页面（home页）刷新活跃房间状态
-        const pages = getCurrentPages();
-        if (pages.length > 1) {
-          const prevPage = pages[pages.length - 2];
-          if (prevPage && typeof prevPage.checkActiveRoom === 'function') {
-            console.log('通知前一个页面刷新活跃房间');
-            // 使用setTimeout确保页面跳转前调用完成
-            setTimeout(() => {
-              prevPage.checkActiveRoom();
-            }, 100);
-          }
+        // 添加结算时间标记（不更新status字段）
+      await db.collection('rooms').doc(this.data.roomId).update({
+        data: {
+          closeTime: new Date()
         }
+      });
+      console.log('房间已标记结算时间');
       } catch (roomError) {
         console.error('处理房间状态失败:', roomError);
         // 继续执行后续操作，不影响结算流程
@@ -1128,43 +1055,79 @@ Page({
       
       wx.hideLoading();
       
-      // 4. 跳转到结算页面
+      // 2. 跳转到结算页面（先跳转，确保数据传递成功）
       wx.redirectTo({
         url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
-          roomId: settlementData.roomId,
-          roomName: settlementData.roomName,
-          players: settlementData.players,
-          rate: settlementData.rate,
-          recordId: recordResult._id
-        }))}`,
-        success: () => {
-          console.log('跳转结算页面成功');
-        },
-        fail: (redirectError) => {
-          console.error('跳转结算页面失败:', redirectError);
-          // 如果跳转失败，尝试使用reLaunch强制跳转
-          wx.reLaunch({
-            url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
-              roomId: settlementData.roomId,
-              roomName: settlementData.roomName,
-              players: settlementData.players,
-              rate: settlementData.rate,
-              recordId: recordResult._id
-            }))}`
-          });
-        }
+            roomId: settlementData.roomId,
+            roomName: settlementData.roomName,
+            players: settlementData.players,
+            rate: settlementData.rate
+          }))}`,
+          success: () => {
+            console.log('跳转结算页面成功');
+            // 跳转成功后再删除房间记录
+            setTimeout(async () => {
+              try {
+                const db = wx.cloud.database();
+                await db.collection('rooms').doc(this.data.roomId).remove();
+                console.log('房间记录已成功删除');
+                
+                // 通知上一个页面（home页）刷新活跃房间状态
+                const pages = getCurrentPages();
+                if (pages.length > 1) {
+                  const prevPage = pages[pages.length - 2];
+                  if (prevPage && typeof prevPage.checkActiveRoom === 'function') {
+                    console.log('通知前一个页面刷新活跃房间');
+                    prevPage.checkActiveRoom();
+                  }
+                }
+              } catch (deleteError) {
+                console.error('删除房间记录失败:', deleteError);
+              }
+            }, 100);
+          },
+          fail: (redirectError) => {
+            console.error('跳转结算页面失败:', redirectError);
+            // 如果跳转失败，尝试使用reLaunch强制跳转
+            wx.reLaunch({
+              url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
+                roomId: settlementData.roomId,
+                roomName: settlementData.roomName,
+                players: settlementData.players,
+                rate: settlementData.rate
+              }))}`,
+              success: () => {
+                console.log('使用reLaunch跳转结算页面成功');
+                // 跳转成功后再删除房间记录
+                setTimeout(async () => {
+                  try {
+                    const db = wx.cloud.database();
+                    await db.collection('rooms').doc(this.data.roomId).remove();
+                    console.log('房间记录已成功删除');
+                    
+                    // 通知上一个页面（home页）刷新活跃房间状态
+                    const pages = getCurrentPages();
+                    if (pages.length > 1) {
+                      const prevPage = pages[pages.length - 2];
+                      if (prevPage && typeof prevPage.checkActiveRoom === 'function') {
+                        console.log('通知前一个页面刷新活跃房间');
+                        prevPage.checkActiveRoom();
+                      }
+                    }
+                  } catch (deleteError) {
+                    console.error('删除房间记录失败:', deleteError);
+                  }
+                }, 100);
+              }
+            });
+          }
       });
     } catch (error) {
       console.error('结算操作失败:', error);
       wx.hideLoading();
       
       // 根据不同错误类型显示不同提示
-      if (error.errMsg && error.errMsg.includes('collection.add')) {
-        wx.showToast({
-          title: '保存结算记录失败',
-          icon: 'error'
-        });
-      } else if (error.errMsg && error.errMsg.includes('document.remove')) {
+      if (error.errMsg && error.errMsg.includes('document.remove')) {
         wx.showToast({
           title: '删除房间记录失败',
           icon: 'error'

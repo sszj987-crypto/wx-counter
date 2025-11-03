@@ -39,9 +39,7 @@ exports.main = async (event, context) => {
         throw new Error('房间不存在')
       }
 
-      if (room.status !== 'active') {
-        throw new Error('房间已关闭')
-      }
+      // 不再检查房间状态，直接进行分数转移
 
       // 查找发送方和接收方玩家
       const fromPlayerIndex = room.players.findIndex(p => p.openId === wxContext.OPENID)
@@ -64,25 +62,35 @@ exports.main = async (event, context) => {
       newPlayers[fromPlayerIndex].score -= score
       newPlayers[toPlayerIndex].score += score
 
+      // 创建计分记录
+      const scoreRecord = {
+        fromPlayerOpenId: wxContext.OPENID,
+        toPlayerOpenId: toPlayerOpenId,
+        score: score,
+        fromPlayerNickName: room.players[fromPlayerIndex].nickName,
+        toPlayerNickName: room.players[toPlayerIndex].nickName,
+        createTime: new Date()
+      };
+
+      // 准备更新数据
+      const updateData = {
+        players: newPlayers,
+        lastUpdateTime: new Date()
+      };
+
+      // 检查房间数据中是否已有records字段
+      // 如果没有，需要使用set来初始化数组；如果有，则使用push操作符
+      if (!room.records) {
+        // 初始化records字段为包含当前记录的数组
+        updateData.records = [scoreRecord];
+      } else {
+        // 使用push操作符将新记录添加到现有records数组中
+        updateData.records = _.push(scoreRecord);
+      }
+
       // 更新房间数据
       await transaction.collection('rooms').doc(roomId).update({
-        data: {
-          players: newPlayers,
-          lastUpdateTime: new Date()
-        }
-      })
-
-      // 记录计分操作
-      await transaction.collection('records').add({
-        data: {
-          roomId: roomId,
-          fromPlayerOpenId: wxContext.OPENID,
-          toPlayerOpenId: toPlayerOpenId,
-          score: score,
-          fromPlayerNickName: room.players[fromPlayerIndex].nickName,
-          toPlayerNickName: room.players[toPlayerIndex].nickName,
-          createTime: new Date()
-        }
+        data: updateData
       })
 
       // 提交事务

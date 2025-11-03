@@ -6,7 +6,6 @@
     "pages/score-details/score-details",
     "pages/settlement/settlement",
     "pages/profile/profile",
-    "pages/statistics/statistics",
     "pages/help/help",
     "pages/feedback/feedback"
   ],

@@ -65,18 +65,21 @@ Page({
     try {
       this.setData({ isLoading: true })
       
-      // 查询records集合中该房间的所有记录，按时间倒序排列
-      const records = await db.collection('records')
-        .where({
-          roomId: this.data.roomId
-        })
-        .orderBy('createTime', 'desc')
-        .get()
+      // 查询rooms集合中的records字段，按时间倒序排列
+      const roomResult = await db.collection('rooms')
+        .doc(this.data.roomId)
+        .get();
 
-      console.log('获取到的给分记录:', records.data)
+      // 从房间数据中提取records字段，如果不存在则使用空数组
+      const scoreRecords = roomResult.data?.records || [];
+      
+      // 按时间倒序排序
+      scoreRecords.sort((a, b) => b.createTime - a.createTime);
+      
+      console.log('获取到的给分记录:', scoreRecords)
       
       this.setData({
-        scoreRecords: records.data,
+        scoreRecords: scoreRecords,
         isLoading: false
       })
     } catch (error) {

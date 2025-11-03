@@ -20,17 +20,6 @@
       <view class="menu-arrow">›</view>
     </view>
 
-    <view class="menu-item" bindtap="goToStatistics">
-      <view class="menu-icon">📊</view>
-      <view class="menu-content">
-        <view class="menu-title">数据统计</view>
-        <view class="menu-desc">查看您的游戏数据</view>
-      </view>
-      <view class="menu-arrow">›</view>
-    </view>
-
-
-
     <view class="menu-item" bindtap="goToFeedback">
       <view class="menu-icon">💬</view>
       <view class="menu-content">

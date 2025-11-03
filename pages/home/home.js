@@ -250,8 +250,8 @@ Page({
    */
   async enterExistingRoom() {
     // 防止重复点击
-    if (this.data.isProcessing) {
-      console.log('正在处理中，请稍后再试')
+    if (this.data.isProcessing || !this.data.activeRoom) {
+      console.log('正在处理中或无活跃房间，请稍后再试')
       return
     }
     
@@ -260,22 +260,18 @@ Page({
       isProcessing: true
     })
     
-    // 在进入房间前先刷新活跃房间状态，确保使用最新数据
-    await this.checkActiveRoom();
-    
-    if (this.data.activeRoom) {
-      console.log('进入已存在的房间:', this.data.activeRoom.roomNumber)
-      wx.navigateTo({
-        url: `/pages/room/room?roomId=${this.data.activeRoom._id}`,
-        events: {
-          // 当从room页面返回时刷新活跃房间状态
-          roomUpdated: () => {
-            console.log('房间已更新，刷新活跃房间状态');
-            this.checkActiveRoom();
-          }
+    console.log('进入已存在的房间:', this.data.activeRoom.roomNumber)
+    // 直接使用现有的activeRoom数据进行跳转，避免重新检查导致按钮消失再出现
+    wx.navigateTo({
+      url: `/pages/room/room?roomId=${this.data.activeRoom._id}`,
+      events: {
+        // 当从room页面返回时刷新活跃房间状态
+        roomUpdated: () => {
+          console.log('房间已更新，刷新活跃房间状态');
+          this.checkActiveRoom();
         }
-      })
-    }
+      }
+    })
     
     // 无论成功失败，都在最后将处理状态设为false
     setTimeout(() => {
@@ -310,11 +306,10 @@ Page({
         return null
       }
 
-      // 严格查询活跃房间 - 只查找状态为active且未被删除的房间
+      // 查询房间 - 不再通过status字段过滤
       const db = wx.cloud.database()
       const result = await db.collection('rooms')
         .where({
-          status: 'active', // 确保状态为active
           _id: db.command.exists(true), // 确保记录存在
           players: db.command.elemMatch({
             openId: openId
@@ -339,8 +334,8 @@ Page({
           // 再次验证房间是否真的存在（防止查询和验证之间被删除）
           try {
             const verifyResult = await db.collection('rooms').doc(room._id).get()
-            if (verifyResult.data && verifyResult.data.status === 'active') {
-              // 确认房间仍然活跃存在，才更新页面数据
+            if (verifyResult.data) {
+              // 确认房间仍然存在，才更新页面数据
               this.setData({
                 activeRoom: room
               })
@@ -351,13 +346,12 @@ Page({
           }
         } else {
           console.log('房间已超时，关闭房间:', room._id)
-          // 关闭超时房间
+          // 删除超时房间
           try {
-            await db.collection('rooms').doc(room._id).update({
-              data: { status: 'closed' }
-            })
-          } catch (updateError) {
-            console.log('更新房间状态失败，可能已被删除:', updateError)
+            await db.collection('rooms').doc(room._id).remove()
+            console.log('超时房间已删除:', room._id)
+          } catch (removeError) {
+            console.log('删除房间失败，可能已被删除:', removeError)
           }
         }
       }

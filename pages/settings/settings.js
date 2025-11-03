@@ -88,16 +88,6 @@ Page({
     })
   },
 
-  /**
-   * 跳转到数据统计页面
-   */
-  goToStatistics() {
-    wx.navigateTo({
-      url: '/pages/statistics/statistics'
-    })
-  },
-
-
 
   /**
    * 跳转到建议反馈页面

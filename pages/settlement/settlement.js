@@ -75,8 +75,13 @@ Page({
    */
   async loadSettlementData(recordId) {
     try {
-      const result = await db.collection('records').doc(recordId).get();
-      const { roomId, roomName, players, rate } = result.data;
+      // 由于不再使用records表，这里改为从roomId直接获取
+      // 注意：如果房间已被删除，这里将无法获取数据
+      // 在这种情况下，我们保留recordId作为roomId的可能性
+      const roomId = recordId; // 假设recordId现在实际上是roomId
+      
+      const result = await db.collection('rooms').doc(roomId).get();
+      const { _id, roomName, players, rate } = result.data;
       
       const playersWithRateScore = players.map(player => ({
         ...player,
@@ -84,7 +89,7 @@ Page({
       })).sort((a, b) => b.rateScore - a.rateScore);
 
       this.setData({
-        roomId: roomId,
+        roomId: _id,
         roomName: roomName || '房间',
         players: playersWithRateScore,
         rate: rate || 1
@@ -156,7 +161,7 @@ Page({
           score: 0,
           joinTime: new Date()
         }],
-        status: 'active',
+
         totalRounds: 0,
         teaServiceScore: 0
       };
