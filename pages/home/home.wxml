@@ -8,9 +8,21 @@
   </view>
 
   <view class="main-content">
-    <button class="start-button" bindtap="startMultiPlayer" disabled="{{!hasUserInfo}}">
+    <!-- 进入房间按钮 - 仅在存在活跃房间时显示 -->
+    <button class="start-button enter-room-button" 
+            bindtap="enterExistingRoom" 
+            disabled="{{!hasUserInfo}}" 
+            wx:if="{{activeRoom}}">
+      <view>进入房间{{activeRoom.roomNumber}}</view>
+      <view class="button-note">进入已有房间</view>
+    </button>
+    
+    <!-- 开始计分按钮 - 始终显示 -->
+    <button class="start-button" 
+            bindtap="startMultiPlayer" 
+            disabled="{{!hasUserInfo}}">
       <view>开始计分 - 多人模式</view>
-      <view class="button-note">所有玩家自己计分</view>
+      <view class="button-note">创建新房间</view>
     </button>
   </view>
 </view>

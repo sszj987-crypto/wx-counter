@@ -232,6 +232,18 @@ Page({
         isCreating: false
       });
       
+      // 通知home页面刷新活跃房间状态
+      const pages = getCurrentPages();
+      const homePage = pages.find(page => page.route === 'pages/home/home');
+      if (homePage) {
+        console.log('通知home页面刷新活跃房间');
+        // 如果home页面已经注册了roomCreated事件，触发该事件
+        const eventChannel = this.getOpenerEventChannel();
+        if (eventChannel) {
+          eventChannel.emit('roomCreated');
+        }
+      }
+      
       // 生成小程序码
       this.generateQRCode().then(() => {
         // 自动显示二维码弹窗
@@ -1165,6 +1177,13 @@ Page({
     // 关闭数据监听
     if (this.watcher) {
       this.watcher.close();
+    }
+    
+    // 通知home页面刷新活跃房间状态
+    const eventChannel = this.getOpenerEventChannel();
+    if (eventChannel) {
+      console.log('页面卸载，通知home页面刷新活跃房间');
+      eventChannel.emit('roomUpdated');
     }
   }
 });

@@ -9,7 +9,8 @@ Page({
   data: {
     userInfo: null,
     hasUserInfo: true, // 默认设为true，确保按钮始终可用
-    isProcessing: false // 标记按钮是否正在处理点击事件，防止重复点击
+    isProcessing: false, // 标记按钮是否正在处理点击事件，防止重复点击
+    activeRoom: null // 活跃的房间信息
   },
 
   /**
@@ -48,6 +49,9 @@ Page({
     // 无论是否有roomId参数，都先初始化用户信息
     this.initUserInfo().catch(err => {
       console.log('用户信息初始化失败，但不影响页面功能:', err)
+    }).finally(() => {
+      // 初始化完成后检查活跃房间
+      this.checkActiveRoom()
     })
     
     // 如果存在有效roomId，跳转到对应房间页面
@@ -60,6 +64,16 @@ Page({
         })
       }, 300)
     }
+  },
+  
+  /**
+   * 生命周期函数--监听页面显示
+   * 每次页面显示时都检查是否有活跃房间
+   */
+  onShow() {
+    console.log('主页面显示')
+    // 页面显示时也检查活跃房间
+    this.checkActiveRoom()
   },
 
   /**
@@ -187,7 +201,7 @@ Page({
   },
 
   /**
-   * 开始可乐计分器
+   * 开始可乐计分器 - 始终创建新房间
    */
   async startMultiPlayer() {
     // 防止重复点击
@@ -201,29 +215,25 @@ Page({
       isProcessing: true
     })
     
-    console.log('点击开始可乐计分器按钮')
-    // 移除用户信息检查，确保功能不受阻塞
-    // 如果用户信息还未初始化，会在需要时自动处理
-
+    console.log('点击开始可乐计分器按钮 - 创建新房间')
+    
     try {
-      // 检查是否有活跃的房间
-      const activeRoom = await this.checkActiveRoom()
-      if (activeRoom) {
-        console.log('找到活跃房间，直接进入:', activeRoom._id)
-        wx.navigateTo({
-          url: `/pages/room/room?roomId=${activeRoom._id}`
-        })
-      } else {
-        console.log('没有活跃房间，创建新房间')
-        wx.navigateTo({
-          url: '/pages/room/room?mode=create'
-        })
-      }
-    } catch (error) {
-      console.error('检查房间状态失败:', error)
-      // 出错时默认创建新房间
+      // 直接创建新房间
       wx.navigateTo({
-        url: '/pages/room/room?mode=create'
+        url: '/pages/room/room?mode=create',
+        events: {
+          // 当从room页面返回时刷新活跃房间状态
+          roomCreated: () => {
+            console.log('房间已创建，刷新活跃房间状态');
+            this.checkActiveRoom();
+          }
+        }
+      })
+    } catch (error) {
+      console.error('创建房间失败:', error)
+      wx.showToast({
+        title: '创建房间失败，请重试',
+        icon: 'none'
       })
     } finally {
       // 无论成功失败，都在最后将处理状态设为false
@@ -234,9 +244,49 @@ Page({
       }, 500) // 延迟500ms，防止快速重复点击
     }
   },
+  
+  /**
+   * 进入已存在的房间
+   */
+  async enterExistingRoom() {
+    // 防止重复点击
+    if (this.data.isProcessing) {
+      console.log('正在处理中，请稍后再试')
+      return
+    }
+    
+    // 设置处理状态为true
+    this.setData({
+      isProcessing: true
+    })
+    
+    // 在进入房间前先刷新活跃房间状态，确保使用最新数据
+    await this.checkActiveRoom();
+    
+    if (this.data.activeRoom) {
+      console.log('进入已存在的房间:', this.data.activeRoom.roomNumber)
+      wx.navigateTo({
+        url: `/pages/room/room?roomId=${this.data.activeRoom._id}`,
+        events: {
+          // 当从room页面返回时刷新活跃房间状态
+          roomUpdated: () => {
+            console.log('房间已更新，刷新活跃房间状态');
+            this.checkActiveRoom();
+          }
+        }
+      })
+    }
+    
+    // 无论成功失败，都在最后将处理状态设为false
+    setTimeout(() => {
+      this.setData({
+        isProcessing: false
+      })
+    }, 500) // 延迟500ms，防止快速重复点击
+  },
 
   /**
-   * 检查是否有活跃的房间
+   * 检查是否有活跃的房间 - 更新版，直接更新页面数据
    */
   async checkActiveRoom() {
     try {
@@ -252,7 +302,10 @@ Page({
         console.log('当前用户openId:', openId)
       } catch (err) {
         console.log('获取openId失败，可能没有登录，但继续执行:', err)
-        // 如果获取openId失败，返回null，将创建新房间
+        // 如果获取openId失败，更新activeRoom为null
+        this.setData({
+          activeRoom: null
+        })
         return null
       }
 
@@ -278,6 +331,10 @@ Page({
 
         if (hoursDiff < 24) {
           console.log('找到活跃房间:', room._id, '创建时间:', room.createTime)
+          // 更新页面数据，显示进入房间按钮
+          this.setData({
+            activeRoom: room
+          })
           return room
         } else {
           console.log('房间已超时，关闭房间:', room._id)
@@ -285,14 +342,26 @@ Page({
           await wx.cloud.database().collection('rooms').doc(room._id).update({
             data: { status: 'closed' }
           })
+          // 更新页面数据，不显示进入房间按钮
+          this.setData({
+            activeRoom: null
+          })
           return null
         }
       }
       
       console.log('未找到活跃房间')
+      // 更新页面数据，不显示进入房间按钮
+      this.setData({
+        activeRoom: null
+      })
       return null
     } catch (error) {
       console.error('检查活跃房间失败:', error)
+      // 出错时不显示进入房间按钮
+      this.setData({
+        activeRoom: null
+      })
       return null
     }
   },

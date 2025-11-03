@@ -33,8 +33,10 @@ page {
 .main-content {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 40rpx; /* 设置按钮间距 */
 }
 
 .start-button {
@@ -65,7 +67,14 @@ page {
 /* 确保微信默认样式不会覆盖我们的自定义样式 */
 .main-content button {
   width: 90% !important;
+  margin: 0 !important; /* 移除默认边距 */
 }
+
+/* 进入房间按钮的特殊样式 */
+.enter-room-button { 
+   background: linear-gradient(135deg, #28a745, #218838); /* 使用绿色系区分 */ 
+   margin-bottom: 40rpx !important; 
+ }
 
 .start-button > view:first-child {
   font-size: 36rpx;

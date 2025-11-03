@@ -154,10 +154,10 @@
         <image class="large-qrcode" src="{{qrcodeUrl}}" mode="aspectFit"></image>
         <view class="qrcode-instruction">请使用微信扫描上方二维码加入房间</view>
         <view class="room-id-display">
-          <text class="room-id-label">房间ID:</text>
-          <text class="room-id-value">{{currentRoomId}}</text>
+          <text class="room-id-label">房间号:</text>
+          <text class="room-id-value">{{roomData.number || currentRoomId}}</text>
         </view>
-        <view class="qrcode-tip">如扫描无效，请手动输入上方房间ID加入</view>
+        <view class="qrcode-tip">如扫描无效，请手动输入上方房间号加入</view>
         <!-- 开发环境提示信息 -->
         <view class="qrcode-env-info" wx:if="{{qrcodeEnvironmentInfo}}">{{qrcodeEnvironmentInfo}}</view>
       </view>
