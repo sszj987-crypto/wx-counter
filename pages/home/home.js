@@ -292,6 +292,11 @@ Page({
     try {
       console.log('开始检查活跃房间')
       
+      // 先重置activeRoom为null，确保默认状态正确
+      this.setData({
+        activeRoom: null
+      })
+      
       // 即使没有用户信息初始化完成，也尝试获取openId
       let openId = null
       try {
@@ -302,23 +307,21 @@ Page({
         console.log('当前用户openId:', openId)
       } catch (err) {
         console.log('获取openId失败，可能没有登录，但继续执行:', err)
-        // 如果获取openId失败，更新activeRoom为null
-        this.setData({
-          activeRoom: null
-        })
         return null
       }
 
-      // 直接从数据库查询活跃房间
-      const result = await wx.cloud.database().collection('rooms')
+      // 严格查询活跃房间 - 只查找状态为active且未被删除的房间
+      const db = wx.cloud.database()
+      const result = await db.collection('rooms')
         .where({
-          status: 'active',
-          players: wx.cloud.database().command.elemMatch({
+          status: 'active', // 确保状态为active
+          _id: db.command.exists(true), // 确保记录存在
+          players: db.command.elemMatch({
             openId: openId
           })
         })
-        .orderBy('createTime', 'desc')
-        .limit(1)
+        .orderBy('createTime', 'desc') // 获取最新创建的房间
+        .limit(1) // 只获取一个最新的房间
         .get()
 
       console.log('查询活跃房间结果:', result)
@@ -329,32 +332,37 @@ Page({
         const roomTime = new Date(room.createTime)
         const hoursDiff = (now - roomTime) / (1000 * 60 * 60)
 
+        // 检查房间是否超时
         if (hoursDiff < 24) {
-          console.log('找到活跃房间:', room._id, '创建时间:', room.createTime)
-          // 更新页面数据，显示进入房间按钮
-          this.setData({
-            activeRoom: room
-          })
-          return room
+          console.log('找到活跃房间:', room._id, '房间号:', room.roomNumber, '创建时间:', room.createTime)
+          
+          // 再次验证房间是否真的存在（防止查询和验证之间被删除）
+          try {
+            const verifyResult = await db.collection('rooms').doc(room._id).get()
+            if (verifyResult.data && verifyResult.data.status === 'active') {
+              // 确认房间仍然活跃存在，才更新页面数据
+              this.setData({
+                activeRoom: room
+              })
+              return room
+            }
+          } catch (verifyError) {
+            console.log('验证房间存在性失败，可能已被删除:', verifyError)
+          }
         } else {
           console.log('房间已超时，关闭房间:', room._id)
           // 关闭超时房间
-          await wx.cloud.database().collection('rooms').doc(room._id).update({
-            data: { status: 'closed' }
-          })
-          // 更新页面数据，不显示进入房间按钮
-          this.setData({
-            activeRoom: null
-          })
-          return null
+          try {
+            await db.collection('rooms').doc(room._id).update({
+              data: { status: 'closed' }
+            })
+          } catch (updateError) {
+            console.log('更新房间状态失败，可能已被删除:', updateError)
+          }
         }
       }
       
-      console.log('未找到活跃房间')
-      // 更新页面数据，不显示进入房间按钮
-      this.setData({
-        activeRoom: null
-      })
+      console.log('未找到活跃房间或房间已失效')
       return null
     } catch (error) {
       console.error('检查活跃房间失败:', error)
