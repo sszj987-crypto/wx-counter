@@ -30,10 +30,6 @@ Component({
       type: Boolean,
       value: false
     },
-    homeButton: {
-      type: Boolean,
-      value: false,
-    },
     animated: {
       // 显示隐藏的时候opacity动画效果
       type: Boolean,

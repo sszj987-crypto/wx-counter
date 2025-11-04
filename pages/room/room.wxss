@@ -155,6 +155,33 @@ page {
 
 .players-table {
   background: white;
+  overflow: hidden;
+}
+
+/* 玩家列表滚动区域样式 */
+.players-scroll {
+  width: 100%;
+  height: 400rpx;
+  overflow-x: hidden;
+  background: white;
+}
+
+/* 当玩家数量超过6人时，添加滚动条样式 */
+.players-scroll::-webkit-scrollbar {
+  width: 4rpx;
+}
+
+.players-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.players-scroll::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 2rpx;
+}
+
+.players-scroll::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 /* 保证表头和表格主体的列宽一致 */
