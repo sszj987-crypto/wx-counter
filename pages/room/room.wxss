@@ -9,7 +9,26 @@ page {
 .container {
   flex: 1;
   padding: 40rpx;
-  padding-bottom: calc(env(safe-area-inset-bottom) + 40rpx); /* 添加底部安全区域避让 */
+  padding-bottom: calc(env(safe-area-inset-bottom) + 150rpx); /* 为底部操作按钮留出空间 */
+  display: flex;
+  flex-direction: column;
+}
+
+.players-section {
+  background: white;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.players-scroll {
+  width: 100%;
+  flex: 1;
+  overflow-x: hidden;
+  background: white;
 }
 
 .loading {

@@ -1,8 +1,16 @@
 /* score-details.wxss */
+page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f8f9fa;
+}
+
 .container {
-  padding: 20rpx;
-  background-color: #f5f5f5;
-  min-height: 100vh;
+  flex: 1;
+  padding: 40rpx;
+  display: flex;
+  flex-direction: column;
 }
 
 .loading {
@@ -25,7 +33,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 120rpx;
+  height: 100rpx;
 }
 
 .room-name {

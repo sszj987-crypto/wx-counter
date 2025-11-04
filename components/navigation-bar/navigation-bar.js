@@ -60,10 +60,23 @@ Component({
       const isAndroid = platform === 'android'
       const isDevtools = platform === 'devtools'
       const { windowWidth, safeArea: { top = 0, bottom = 0 } = {} } = wx.getWindowInfo() || wx.getSystemInfoSync()
+      
+      // 添加对rect的检查，防止获取不到菜单按钮边界信息导致组件渲染异常
+      let innerPaddingRight = ''
+      let leftWidth = ''
+      if (rect) {
+        innerPaddingRight = `padding-right: ${windowWidth - rect.left}px`
+        leftWidth = `width: ${windowWidth - rect.left}px`
+      } else {
+        // 如果获取不到菜单按钮边界信息，使用默认值
+        innerPaddingRight = `padding-right: 15px`
+        leftWidth = `width: 15px`
+      }
+      
       this.setData({
         ios: !isAndroid,
-        innerPaddingRight: `padding-right: ${windowWidth - rect.left}px`,
-        leftWidth: `width: ${windowWidth - rect.left}px`,
+        innerPaddingRight,
+        leftWidth,
         safeAreaTop: isDevtools || isAndroid ? `height: calc(var(--height) + ${top}px); padding-top: ${top}px` : ``
       })
     },
