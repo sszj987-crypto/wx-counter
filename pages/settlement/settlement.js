@@ -4,7 +4,7 @@ const db = wx.cloud.database();
 Page({
   data: {
     roomId: '',
-    roomName: '',
+    roomNumber: '',
     players: [],
     rate: 1,
     roomClosed: false,
@@ -35,7 +35,7 @@ Page({
     try {
       const decodedData = decodeURIComponent(options.data || '');
       const data = JSON.parse(decodedData || '{}');
-      const { roomId, roomName, players, rate } = data;
+      const { roomId, roomNumber, players, rate } = data;
     
       if (!players || !Array.isArray(players)) {
         wx.showToast({
@@ -56,7 +56,7 @@ Page({
 
       this.setData({
         roomId: roomId || '',
-        roomName: roomName || '房间',
+        roomNumber: roomNumber || '',
         players: playersWithRateScore,
         rate: rate || 1
       });
@@ -81,7 +81,7 @@ Page({
       const roomId = recordId; // 假设recordId现在实际上是roomId
       
       const result = await db.collection('rooms').doc(roomId).get();
-      const { _id, roomName, players, rate } = result.data;
+      const { _id, roomNumber, players, rate } = result.data;
       
       const playersWithRateScore = players.map(player => ({
         ...player,
@@ -90,7 +90,7 @@ Page({
 
       this.setData({
         roomId: _id,
-        roomName: roomName || '房间',
+        roomNumber: roomNumber || '',
         players: playersWithRateScore,
         rate: rate || 1
       });
@@ -150,9 +150,8 @@ Page({
       // 创建新房间 - 确保所有字段都有默认值
       const newRoomData = {
         _id: roomId,
-        roomName: `房间${roomNumber}`,
+        _openid: openId,
         roomNumber: roomNumber,
-        creatorOpenId: openId,
         createTime: new Date(),
         players: [{
           openId: openId,

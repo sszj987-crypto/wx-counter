@@ -5,7 +5,7 @@
   
   <!-- 房间信息 -->
   <view class="room-info">
-    <view class="room-name">{{roomName}}</view>
+    <view class="room-name">房间{{roomNumber}}</view>
     <view class="rate-info">
       <text>计算倍率: </text>
       <text class="rate-value">{{rate || 1}}</text>

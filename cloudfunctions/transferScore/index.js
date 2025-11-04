@@ -77,8 +77,7 @@ exports.main = async (event, context) => {
 
       // 准备更新数据
       const updateData = {
-        players: newPlayers,
-        lastUpdateTime: new Date()
+        players: newPlayers
       };
 
       // 检查房间数据中是否已有records字段

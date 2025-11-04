@@ -234,9 +234,8 @@ Page({
       // 房间数据
       const roomData = {
         _id: roomId,
-        roomName: `房间${roomNumber}`,
+        _openid: openId, // 使用_openid替代creatorOpenId
         roomNumber: roomNumber,
-        creatorOpenId: openId,
         createTime: new Date(),
         players: [{
           openId: openId,
@@ -944,7 +943,7 @@ Page({
    */
   onShareAppMessage() {
     return {
-      title: `房间 ${this.data.roomData?.roomName || this.data.roomId} - 可乐计分器`,
+      title: `房间 ${this.data.roomData?.roomNumber || this.data.roomId} - 可乐计分器`,
       path: `/pages/room/room?roomId=${this.data.roomId}`,
       imageUrl: this.data.qrcodeUrl
     };
@@ -989,7 +988,7 @@ Page({
     }
 
     wx.navigateTo({
-      url: `/pages/score-details/score-details?roomId=${this.data.roomId}&roomName=${encodeURIComponent(this.data.roomData.roomName || '房间')}`
+      url: `/pages/score-details/score-details?roomId=${this.data.roomId}&roomNumber=${this.data.roomData.roomNumber || ''}`
     });
   },
 
@@ -1084,9 +1083,7 @@ Page({
       // 准备结算数据
       const settlementData = {
         roomId: this.data.roomId,
-        roomName: this.data.roomData.roomName,
         roomNumber: this.data.roomData.roomNumber,
-        creatorOpenId: this.data.roomData.creatorOpenId,
         createTime: this.data.roomData.createTime,
         settlementTime: new Date(),
         players: this.data.roomData.players,

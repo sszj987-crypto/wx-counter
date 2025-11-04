@@ -4,7 +4,7 @@
 <view class="container">
   <!-- 房间信息 -->
   <view class="room-info" wx:if="{{!isLoading}}">
-    <view class="room-name">{{roomName}}</view>
+    <view class="room-name">房间{{roomNumber}}</view>
   </view>
 
   <!-- 给分记录列表 -->

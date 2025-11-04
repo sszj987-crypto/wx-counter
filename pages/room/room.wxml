@@ -10,7 +10,7 @@
   <!-- 房间信息 -->
   <view class="room-info" wx:if="{{roomData && !isCreating}}">
     <view class="room-header">
-      <view class="room-name">{{roomData.roomName}}</view>
+      <view class="room-name">房间{{roomData.roomNumber}}</view>
     </view>
 
     <!-- 小程序码和邀请 -->
@@ -155,11 +155,8 @@
         <view class="qrcode-instruction">请使用微信扫描上方二维码加入房间</view>
         <view class="room-id-display">
           <text class="room-id-label">房间号:</text>
-          <text class="room-id-value">{{roomData.number || currentRoomId}}</text>
+          <text class="room-id-value">房间{{roomData.roomNumber}}</text>
         </view>
-        <view class="qrcode-tip">如扫描无效，请手动输入上方房间号加入</view>
-        <!-- 开发环境提示信息 -->
-        <view class="qrcode-env-info" wx:if="{{qrcodeEnvironmentInfo}}">{{qrcodeEnvironmentInfo}}</view>
       </view>
     </view>
   </view>

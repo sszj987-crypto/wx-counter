@@ -4,7 +4,7 @@ const db = wx.cloud.database()
 Page({
   data: {
     roomId: '',
-    roomName: '',
+    roomNumber: '',
     scoreRecords: [],
     isLoading: true
   },
@@ -31,7 +31,7 @@ Page({
 
   onLoad(options) {
     console.log('给分详情页面加载，参数:', options)
-    const { roomId, roomName } = options
+    const { roomId, roomNumber } = options
     
     if (!roomId) {
       wx.showToast({
@@ -44,17 +44,12 @@ Page({
       return
     }
 
-    // 解码房间名称，防止乱码
-    let decodedRoomName = '房间'
-    try {
-      decodedRoomName = roomName ? decodeURIComponent(roomName) : '房间'
-    } catch (e) {
-      console.error('解码房间名称失败:', e)
-    }
+    // 优化解码逻辑，简单处理房间号
+    const processedRoomNumber = roomNumber ? String(roomNumber).trim() : '房间'
     
     this.setData({
       roomId: roomId,
-      roomName: decodedRoomName
+      roomNumber: processedRoomNumber
     })
 
     this.getScoreRecords()
