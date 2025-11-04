@@ -63,12 +63,74 @@ Page({
   
   /**
    * 生命周期函数--监听页面显示
-   * 每次页面显示时都重新获取最新用户信息
+   * 每次页面显示时都重新获取最新用户信息并更新房间数据
    */
-  onShow() {
-    this.updateUserInfoFromDatabase();
+  async onShow() {
+    // 更新用户信息
+    await this.updateUserInfoFromDatabase();
+    // 如果房间已加载，重新获取最新房间数据以更新玩家信息
+    if (this.data.roomId) {
+      await this.refreshRoomData();
+    }
   },
   
+  /**
+   * 点击玩家名跳转到个人资料页面
+   */
+  onPlayerNameTap(e) {
+    const openId = e.currentTarget.dataset.openid;
+    
+    // 只有点击自己的名字才能跳转到个人资料页面
+    if (openId === this.data.currentUserOpenId) {
+      wx.navigateTo({
+        url: '/pages/profile/profile'
+      });
+    }
+  },
+
+  /**
+   * 刷新房间数据
+   */
+  async refreshRoomData() {
+    try {
+      const db = wx.cloud.database();
+      const roomResult = await db.collection('rooms').doc(this.data.roomId).get();
+      
+      if (roomResult.data) {
+        // 更新玩家在房间中的信息
+        const updatedRoomData = roomResult.data;
+        
+        // 查找当前用户在房间中的位置
+        const currentPlayerIndex = updatedRoomData.players.findIndex(
+          player => player.openId === this.data.currentUserOpenId
+        );
+        
+        // 如果找到当前用户，更新其头像和昵称
+        if (currentPlayerIndex !== -1 && this.data.userInfo) {
+          updatedRoomData.players[currentPlayerIndex] = {
+            ...updatedRoomData.players[currentPlayerIndex],
+            nickName: this.data.userInfo.nickName,
+            avatarUrl: this.data.userInfo.avatarUrl
+          };
+          
+          // 更新数据库中的玩家信息
+          await db.collection('rooms').doc(this.data.roomId).update({
+            data: {
+              players: updatedRoomData.players
+            }
+          });
+        }
+        
+        // 更新页面数据
+        this.setData({
+          roomData: updatedRoomData
+        });
+      }
+    } catch (error) {
+      console.error('刷新房间数据失败:', error);
+    }
+  },
+
   /**
    * 从数据库更新用户信息
    */
@@ -834,6 +896,9 @@ Page({
    * 确认给分
    */
   async confirmTransfer() {
+    console.log('执行confirmTransfer，检查房间状态');
+    console.log('当前房间数据:', this.data.roomData);
+    
     const { targetPlayer, score } = this.data.transferModal;
     
     if (!score || score <= 0) {

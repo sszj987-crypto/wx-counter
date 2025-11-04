@@ -53,9 +53,9 @@
       <view class="table-body">
         <view class="table-row" wx:for="{{roomData.players}}" wx:key="openId">
           <view class="table-cell player-cell">
-            <image class="player-avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+            <image class="player-avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}"></image>
             <view class="player-info">
-              <view class="player-name">{{item.nickName}}</view>
+              <view class="player-name" bindtap="onPlayerNameTap" data-openid="{{item.openId}}">{{item.nickName}}</view>
             </view>
           </view>
           

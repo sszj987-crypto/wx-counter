@@ -224,6 +224,11 @@ page {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4rpx;
+  text-decoration-thickness: 1rpx;
+  text-decoration-color: #07c160;
 }
 
 .table-cell.score-cell {

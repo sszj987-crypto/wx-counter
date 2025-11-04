@@ -34,12 +34,15 @@ exports.main = async (event, context) => {
       // 获取房间信息
       const roomResult = await transaction.collection('rooms').doc(roomId).get()
       const room = roomResult.data
+      console.log('房间信息:', room)
 
       if (!room) {
         throw new Error('房间不存在')
       }
 
-      // 不再检查房间状态，直接进行分数转移
+      // 记录房间是否有closeTime字段
+      console.log('房间是否有closeTime:', !!room.closeTime)
+      // 完全移除任何形式的房间状态检查，确保给分操作不受限制
 
       // 查找发送方和接收方玩家
       const fromPlayerIndex = room.players.findIndex(p => p.openId === wxContext.OPENID)
@@ -108,9 +111,14 @@ exports.main = async (event, context) => {
     }
   } catch (error) {
     console.error('计分操作失败:', error)
+    // 检查错误消息是否包含'房间已关闭'，如果是则替换为更通用的错误信息
+    let errorMessage = error.message;
+    if (errorMessage.includes('房间已关闭')) {
+      errorMessage = '给分操作失败，请重试';
+    }
     return {
       success: false,
-      error: error.message
+      error: errorMessage
     }
   }
 }
