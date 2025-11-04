@@ -14,30 +14,38 @@
       <view class="record-count">{{scoreRecords.length}}条</view>
     </view>
 
-    <view class="records-list">
-      <view class="records-empty" wx:if="{{scoreRecords.length === 0}}">
-        <view class="empty-text">暂无给分记录</view>
-      </view>
-
-      <view class="record-item" wx:for="{{scoreRecords}}" wx:key="_id">
-        <view class="record-header">
-          <view class="record-time">{{formatTime(item.createTime)}}</view>
+    <scroll-view 
+      class="records-list" 
+      scroll-y 
+      style="height: 70vh;" 
+      enable-flex 
+      enhanced 
+      show-scrollbar="false">
+      <view class="records-container">
+        <view class="records-empty" wx:if="{{scoreRecords.length === 0}}">
+          <view class="empty-text">暂无给分记录</view>
         </view>
-        
-        <view class="record-content">
-          <view class="record-player-info">
-            <image class="player-avatar" src="{{'/images/default-avatar.png'}}"></image>
-            <view class="player-name">{{item.fromPlayerNickName || '玩家'}}</view>
-            <view class="arrow">→</view>
-            <image class="player-avatar" src="{{'/images/default-avatar.png'}}"></image>
-            <view class="player-name">{{item.toPlayerNickName || '玩家'}}</view>
+
+        <view class="record-item" wx:for="{{scoreRecords}}" wx:key="_id">
+          <view class="record-header">
+            <view class="record-time">{{formatTime(item.createTime)}}</view>
           </view>
           
-          <view class="record-score">
-            <view class="score-value" style="color: #52c41a">+{{item.score}}</view>
+          <view class="record-content">
+            <view class="record-player-info">
+              <image class="player-avatar" src="{{'/images/default-avatar.png'}}"></image>
+              <view class="player-name">{{item.fromPlayerNickName || '玩家'}}</view>
+              <view class="arrow">→</view>
+              <image class="player-avatar" src="{{'/images/default-avatar.png'}}"></image>
+              <view class="player-name">{{item.toPlayerNickName || '玩家'}}</view>
+            </view>
+            
+            <view class="record-score">
+              <view class="score-value" style="color: #52c41a">+{{item.score}}</view>
+            </view>
           </view>
         </view>
       </view>
-    </view>
+    </scroll-view>
   </view>
 </view>

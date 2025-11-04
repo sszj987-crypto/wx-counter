@@ -74,6 +74,8 @@ Page({
     }
   },
   
+
+  
   /**
    * 点击玩家名跳转到个人资料页面
    */
@@ -1130,26 +1132,7 @@ Page({
           }))}`,
           success: () => {
             console.log('跳转结算页面成功');
-            // 跳转成功后再删除房间记录
-            setTimeout(async () => {
-              try {
-                const db = wx.cloud.database();
-                await db.collection('rooms').doc(this.data.roomId).remove();
-                console.log('房间记录已成功删除');
-                
-                // 通知上一个页面（home页）刷新活跃房间状态
-                const pages = getCurrentPages();
-                if (pages.length > 1) {
-                  const prevPage = pages[pages.length - 2];
-                  if (prevPage && typeof prevPage.checkActiveRoom === 'function') {
-                    console.log('通知前一个页面刷新活跃房间');
-                    prevPage.checkActiveRoom();
-                  }
-                }
-              } catch (deleteError) {
-                console.error('删除房间记录失败:', deleteError);
-              }
-            }, 100);
+            // 移除立即删除房间的逻辑，改为在room页面onShow时检查是否需要删除
           },
           fail: (redirectError) => {
             console.error('跳转结算页面失败:', redirectError);
@@ -1163,26 +1146,7 @@ Page({
               }))}`,
               success: () => {
                 console.log('使用reLaunch跳转结算页面成功');
-                // 跳转成功后再删除房间记录
-                setTimeout(async () => {
-                  try {
-                    const db = wx.cloud.database();
-                    await db.collection('rooms').doc(this.data.roomId).remove();
-                    console.log('房间记录已成功删除');
-                    
-                    // 通知上一个页面（home页）刷新活跃房间状态
-                    const pages = getCurrentPages();
-                    if (pages.length > 1) {
-                      const prevPage = pages[pages.length - 2];
-                      if (prevPage && typeof prevPage.checkActiveRoom === 'function') {
-                        console.log('通知前一个页面刷新活跃房间');
-                        prevPage.checkActiveRoom();
-                      }
-                    }
-                  } catch (deleteError) {
-                    console.error('删除房间记录失败:', deleteError);
-                  }
-                }, 100);
+                // 移除立即删除房间的逻辑
               }
             });
           }

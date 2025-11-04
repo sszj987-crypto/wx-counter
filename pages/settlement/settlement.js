@@ -240,5 +240,35 @@ Page({
     } catch (e) {
       console.error('返回首页方法执行异常:', e);
     }
+  },
+
+  /**
+   * 页面卸载时触发
+   * 立即删除房间数据，确保主页面无法查询到已删除的房间
+   */
+  async onUnload() {
+    console.log('结算页面卸载，立即删除房间数据');
+    if (this.data.roomId) {
+      try {
+        // 立即删除房间数据
+        await db.collection('rooms').doc(this.data.roomId).remove();
+        console.log('房间数据已成功删除:', this.data.roomId);
+        
+        // 通知home页面刷新活跃房间列表
+        const pages = getCurrentPages();
+        if (pages.length > 0) {
+          // 尝试在页面栈中找到home页
+          for (const page of pages) {
+            if (page.route === 'pages/home/home' && typeof page.checkActiveRoom === 'function') {
+              console.log('通知home页面刷新活跃房间');
+              page.checkActiveRoom();
+              break;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('删除房间数据失败:', error);
+      }
+    }
   }
 })

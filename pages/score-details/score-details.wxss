@@ -40,6 +40,7 @@
   background-color: #fff;
   padding: 30rpx;
   border-radius: 12rpx;
+  position: relative;
 }
 
 .section-title {
@@ -62,9 +63,23 @@
   color: #999;
 }
 
+.records-list {
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+
+.records-container {
+  padding-bottom: 20rpx;
+  padding-right: 30rpx; /* 为滚动条留出空间 */
+}
+
 .records-empty {
   padding: 100rpx 0;
   text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300rpx;
 }
 
 .record-time {
@@ -98,14 +113,15 @@
 
 .record-content {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  width: 100%;
 }
 
 .record-player-info {
   display: flex;
   align-items: center;
-  flex: 1;
+  flex: 1; /* 占据大部分空间 */
+  max-width: calc(100% - 120rpx); /* 为分数部分留出足够空间 */
 }
 
 .player-avatar {
@@ -132,6 +148,9 @@
 
 .record-score {
   margin-left: 20rpx;
+  flex-shrink: 0; /* 防止分数部分被压缩 */
+  min-width: 80rpx; /* 确保分数有足够的显示空间 */
+  text-align: right; /* 分数右对齐 */
 }
 
 .score-value {
