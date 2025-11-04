@@ -1,5 +1,4 @@
 {
-  "navigationBarTitleText": "房间结算",
   "usingComponents": {
     "navigation-bar": "/components/navigation-bar/navigation-bar"
   }

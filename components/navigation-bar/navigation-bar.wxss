@@ -2,13 +2,15 @@
   --weui-FG-0:rgba(0,0,0,.9);
   --height: 32px;
   --left: 12px;
+  z-index: 9999;
+  position: relative;
 }
 .weui-navigation-bar .android {
   --height: 36px;
 }
 
 .weui-navigation-bar {
-  overflow: hidden;
+  overflow: visible;
   color: var(--weui-FG-0);
   flex: none;
 }

@@ -4,7 +4,6 @@ page {
   display: flex;
   flex-direction: column;
   background-color: #f8f9fa;
-  padding-top: env(safe-area-inset-top); /* 添加顶部安全区域避让 */
 }
 
 .container {
