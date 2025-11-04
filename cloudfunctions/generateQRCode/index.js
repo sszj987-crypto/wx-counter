@@ -25,7 +25,8 @@ exports.main = async (event, context) => {
     
     // 开发环境降级方案：默认使用首页路径，因为wxacode.getUnlimited要求页面必须已发布
     // 但保留场景参数，这样用户扫描后仍可以获取roomId信息
-    params.scene = roomId ? `roomId=${roomId}` : ''
+    // 注意：scene参数不能为空，必须是32个字符以内的字符串
+    params.scene = roomId ? `roomId=${roomId}` : 'page=home'
     params.page = 'pages/home/home' // 使用首页作为统一页面路径
     
     console.log('生成小程序码参数:', params)
