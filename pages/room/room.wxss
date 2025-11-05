@@ -399,13 +399,15 @@ page {
 
 /* 二维码弹窗样式 */
 .qrcode-modal {
-  width: 80%;
-  max-width: 500rpx;
+  width: 90%;
+  max-width: 600rpx;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .qrcode-display {
   padding: 30rpx;
+  box-sizing: border-box;
 }
 
 .large-qrcode {
@@ -416,6 +418,7 @@ page {
   border-radius: 16rpx;
   border: 2rpx solid #f0f0f0;
   padding: 20rpx;
+  box-sizing: border-box;
 }
 
 .qrcode-instruction {
@@ -476,7 +479,7 @@ page {
   background-color: #fff;
   border-top: 1rpx solid #eee;
   position: fixed;
-  bottom: 0;
+  bottom: 20rpx;
   left: 0;
   right: 0;
   z-index: 100;
