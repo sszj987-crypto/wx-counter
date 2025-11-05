@@ -340,12 +340,14 @@ Page({
 
         // 查询房间 - 不再通过status字段过滤
         const db = wx.cloud.database()
+        // 数据库索引建议:
+        // 组合索引: createTime: 降序, _id: 升序, players: 升序
         const result = await db.collection('rooms')
           .where({
-            _id: db.command.exists(true), // 确保记录存在
             players: db.command.elemMatch({
               openId: openId
-            })
+            }),
+            _id: db.command.exists(true) // 确保记录存在
           })
           .orderBy('createTime', 'desc') // 获取最新创建的房间
           .limit(1) // 只获取一个最新的房间
