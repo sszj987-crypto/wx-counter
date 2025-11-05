@@ -179,7 +179,7 @@ page {
 /* 玩家列表滚动区域样式 */
 .players-scroll {
   width: 100%;
-  height: 400rpx;
+  height: 600rpx; /* 增加高度以显示更多玩家 */
   overflow-x: hidden;
   background: white;
 }
