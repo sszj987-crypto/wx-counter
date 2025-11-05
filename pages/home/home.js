@@ -10,7 +10,8 @@ Page({
     userInfo: null,
     hasUserInfo: true, // 默认设为true，确保按钮始终可用
     isProcessing: false, // 标记按钮是否正在处理点击事件，防止重复点击
-    activeRoom: null // 活跃的房间信息
+    activeRoom: null, // 活跃的房间信息
+    checkActiveRoomTimer: null // 用于防抖处理的定时器
   },
 
   /**
@@ -294,100 +295,134 @@ Page({
 
   /**
    * 检查是否有活跃的房间 - 更新版，直接更新页面数据
+   * 添加防抖处理，避免重复调用
    */
   async checkActiveRoom() {
-    try {
-      console.log('开始检查活跃房间')
-      
-      // 先重置activeRoom为null，确保默认状态正确
-      this.setData({
-        activeRoom: null
-      })
-      
-      // 即使没有用户信息初始化完成，也尝试获取openId
-      let openId = null
+    // 防抖处理：如果已有定时器在等待执行，则清除它并重新设置
+    if (this.data.checkActiveRoomTimer) {
+      clearTimeout(this.data.checkActiveRoomTimer);
+    }
+    
+    // 设置新的定时器，延迟执行实际的检查逻辑
+    const timer = setTimeout(async () => {
       try {
-        // 尝试从缓存获取openId
-        const app = getApp();
-        const cacheManager = app.globalData.cacheManager;
-        openId = cacheManager.getOpenId();
+        console.log('开始检查活跃房间')
         
-        if (!openId) {
-          // 缓存中没有openid，调用云函数获取
-          const { result: userInfoResult } = await wx.cloud.callFunction({
-            name: 'getOpenId'
-          })
-          openId = userInfoResult.openId
-          // 将openid存入缓存
-          cacheManager.setOpenId(openId);
-          console.log('通过云函数获取用户openId:', openId)
-        } else {
-          console.log('使用缓存的用户openId:', openId)
-        }
-      } catch (err) {
-        console.log('获取openId失败，可能没有登录，但继续执行:', err)
-        return null
-      }
-
-      // 查询房间 - 不再通过status字段过滤
-      const db = wx.cloud.database()
-      const result = await db.collection('rooms')
-        .where({
-          _id: db.command.exists(true), // 确保记录存在
-          players: db.command.elemMatch({
-            openId: openId
-          })
+        // 先重置activeRoom为null，确保默认状态正确
+        this.setData({
+          activeRoom: null
         })
-        .orderBy('createTime', 'desc') // 获取最新创建的房间
-        .limit(1) // 只获取一个最新的房间
-        .get()
-
-      console.log('查询活跃房间结果:', result)
-
-      if (result.data && result.data.length > 0) {
-        const room = result.data[0]
-        const now = new Date()
-        const roomTime = new Date(room.createTime)
-        const hoursDiff = (now - roomTime) / (1000 * 60 * 60)
-
-        // 检查房间是否超时
-        if (hoursDiff < 24) {
-          console.log('找到活跃房间:', room._id, '房间号:', room.roomNumber, '创建时间:', room.createTime)
+        
+        // 即使没有用户信息初始化完成，也尝试获取openId
+        let openId = null
+        try {
+          // 尝试从缓存获取openId
+          const app = getApp();
+          const cacheManager = app.globalData.cacheManager;
+          openId = cacheManager.getOpenId();
           
-          // 再次验证房间是否真的存在（防止查询和验证之间被删除）
-          try {
-            const verifyResult = await db.collection('rooms').doc(room._id).get()
-            if (verifyResult.data) {
-              // 确认房间仍然存在，才更新页面数据
-              this.setData({
-                activeRoom: room
-              })
-              return room
-            }
-          } catch (verifyError) {
-            console.log('验证房间存在性失败，可能已被删除:', verifyError)
+          if (!openId) {
+            // 缓存中没有openid，调用云函数获取
+            const { result: userInfoResult } = await wx.cloud.callFunction({
+              name: 'getOpenId'
+            })
+            openId = userInfoResult.openId
+            // 将openid存入缓存
+            cacheManager.setOpenId(openId);
+            console.log('通过云函数获取用户openId:', openId)
+          } else {
+            console.log('使用缓存的用户openId:', openId)
           }
-        } else {
-          console.log('房间已超时，关闭房间:', room._id)
-          // 删除超时房间
-          try {
-            await db.collection('rooms').doc(room._id).remove()
-            console.log('超时房间已删除:', room._id)
-          } catch (removeError) {
-            console.log('删除房间失败，可能已被删除:', removeError)
+        } catch (err) {
+          console.log('获取openId失败，可能没有登录，但继续执行:', err)
+          return null
+        }
+
+        // 查询房间 - 不再通过status字段过滤
+        const db = wx.cloud.database()
+        const result = await db.collection('rooms')
+          .where({
+            _id: db.command.exists(true), // 确保记录存在
+            players: db.command.elemMatch({
+              openId: openId
+            })
+          })
+          .orderBy('createTime', 'desc') // 获取最新创建的房间
+          .limit(1) // 只获取一个最新的房间
+          .get()
+
+        console.log('查询活跃房间结果:', result)
+
+        if (result.data && result.data.length > 0) {
+          const room = result.data[0]
+          const now = new Date()
+          const roomTime = new Date(room.createTime)
+          const hoursDiff = (now - roomTime) / (1000 * 60 * 60)
+
+          // 检查房间是否超时
+          if (hoursDiff < 24) {
+            console.log('找到活跃房间:', room._id, '房间号:', room.roomNumber, '创建时间:', room.createTime)
+            
+            // 再次验证房间是否真的存在（防止查询和验证之间被删除）
+            try {
+              const verifyResult = await db.collection('rooms').doc(room._id).get()
+              if (verifyResult.data) {
+                // 确认房间仍然存在，才更新页面数据
+                this.setData({
+                  activeRoom: room
+                })
+                return room
+              }
+            } catch (verifyError) {
+              console.log('验证房间存在性失败，可能已被删除:', verifyError)
+            }
+          } else {
+            console.log('房间已超时，关闭房间:', room._id)
+            // 删除超时房间
+            try {
+              await db.collection('rooms').doc(room._id).remove()
+              console.log('超时房间已删除:', room._id)
+            } catch (removeError) {
+              console.log('删除房间失败，可能已被删除:', removeError)
+            }
           }
         }
+        
+        console.log('未找到活跃房间或房间已失效')
+        return null
+      } catch (error) {
+        console.error('检查活跃房间失败:', error)
+        // 出错时不显示进入房间按钮
+        this.setData({
+          activeRoom: null
+        })
+        return null
+      } finally {
+        // 清除定时器引用
+        this.setData({
+          checkActiveRoomTimer: null
+        });
       }
-      
-      console.log('未找到活跃房间或房间已失效')
-      return null
-    } catch (error) {
-      console.error('检查活跃房间失败:', error)
-      // 出错时不显示进入房间按钮
-      this.setData({
-        activeRoom: null
-      })
-      return null
+    }, 300); // 延迟300毫秒执行
+    
+    // 更新定时器引用
+    this.setData({
+      checkActiveRoomTimer: timer
+    });
+  },
+
+  /**
+   * 页面分享
+   */
+  /**
+   * 生命周期函数--监听页面卸载
+   * 清理防抖定时器，防止内存泄漏
+   */
+  onUnload() {
+    console.log('主页面卸载，清理防抖定时器')
+    // 清理checkActiveRoom的防抖定时器
+    if (this.data.checkActiveRoomTimer) {
+      clearTimeout(this.data.checkActiveRoomTimer);
     }
   },
 
