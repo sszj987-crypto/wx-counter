@@ -138,12 +138,23 @@ Page({
    */
   async getUserInfoFromDB() {
     try {
-      // 获取当前用户openId
-      const { result: userInfo } = await wx.cloud.callFunction({
-        name: 'getOpenId'
-      })
-      const openId = userInfo.openId
-      console.log('当前用户openId:', openId)
+      // 尝试从缓存获取openId
+      const app = getApp();
+      const cacheManager = app.globalData.cacheManager;
+      let openId = cacheManager.getOpenId();
+      
+      if (!openId) {
+        // 缓存中没有openid，调用云函数获取
+        const { result: userInfo } = await wx.cloud.callFunction({
+          name: 'getOpenId'
+        })
+        openId = userInfo.openId
+        // 将openid存入缓存
+        cacheManager.setOpenId(openId);
+        console.log('通过云函数获取用户openId:', openId)
+      } else {
+        console.log('使用缓存的用户openId:', openId)
+      }
 
       // 直接从数据库查询用户信息
       const userResult = await wx.cloud.database().collection('users').doc(openId).get()
@@ -296,11 +307,23 @@ Page({
       // 即使没有用户信息初始化完成，也尝试获取openId
       let openId = null
       try {
-        const { result: userInfoResult } = await wx.cloud.callFunction({
-          name: 'getOpenId'
-        })
-        openId = userInfoResult.openId
-        console.log('当前用户openId:', openId)
+        // 尝试从缓存获取openId
+        const app = getApp();
+        const cacheManager = app.globalData.cacheManager;
+        openId = cacheManager.getOpenId();
+        
+        if (!openId) {
+          // 缓存中没有openid，调用云函数获取
+          const { result: userInfoResult } = await wx.cloud.callFunction({
+            name: 'getOpenId'
+          })
+          openId = userInfoResult.openId
+          // 将openid存入缓存
+          cacheManager.setOpenId(openId);
+          console.log('通过云函数获取用户openId:', openId)
+        } else {
+          console.log('使用缓存的用户openId:', openId)
+        }
       } catch (err) {
         console.log('获取openId失败，可能没有登录，但继续执行:', err)
         return null

@@ -307,6 +307,11 @@ Page({
         }
       }
       
+      // 清除所有房间二维码缓存（创建新房间后）
+      const app = getApp();
+      const cacheManager = app.globalData.cacheManager;
+      cacheManager.clearAllRoomQRCodes();
+      
       // 生成小程序码
       this.generateQRCode().then(() => {
         // 自动显示二维码弹窗
@@ -342,12 +347,23 @@ Page({
    */
   async joinRoom(roomId) {
     try {
-      // 获取当前用户openId
-      const { result: userInfoResult } = await wx.cloud.callFunction({
-        name: 'getOpenId'
-      });
-      const openId = userInfoResult.openId;
-      console.log('当前用户openId:', openId);
+      // 尝试从缓存获取openId
+      const app = getApp();
+      const cacheManager = app.globalData.cacheManager;
+      let openId = cacheManager.getOpenId();
+      
+      if (!openId) {
+        // 缓存中没有openid，调用云函数获取
+        const { result: userInfoResult } = await wx.cloud.callFunction({
+          name: 'getOpenId'
+        });
+        openId = userInfoResult.openId;
+        // 将openid存入缓存
+        cacheManager.setOpenId(openId);
+        console.log('通过云函数获取用户openId:', openId);
+      } else {
+        console.log('使用缓存的用户openId:', openId);
+      }
       
       // 更新currentUserOpenId
       this.setData({
@@ -398,7 +414,6 @@ Page({
       }
       
       // 合并用户信息 - 优先使用数据库信息，如果没有则使用本地信息或默认值
-      const app = getApp();
       let userInfo = app.globalData.userInfo || {};
       
       // 如果数据库有用户信息，则优先使用
@@ -554,38 +569,53 @@ Page({
    */
   async showQRCodeModal() {
     try {
-      wx.showLoading({
-        title: '生成房间二维码...',
-      });
+      // 尝试从缓存获取二维码
+      const app = getApp();
+      const cacheManager = app.globalData.cacheManager;
+      let qrcodeUrl = cacheManager.getRoomQRCode(this.data.roomId);
       
-      // 调用云函数生成房间二维码
-      const result = await wx.cloud.callFunction({
-        name: 'generateQRCode',
-        data: {
-          roomId: this.data.roomId
-        }
-      });
-      
-      wx.hideLoading();
-      
-      // 详细检查返回结果
-      if (result && result.result) {
-        if (result.result.success) {
-          // 更新二维码URL并显示弹窗
-          this.setData({
-            qrcodeUrl: result.result.qrcodeUrl,
-            currentRoomId: this.data.roomId,
-            'qrcodeModal.show': true,
-            // 开发环境提示信息
-            qrcodeEnvironmentInfo: '开发环境中，二维码会先跳转至首页再自动转跳至房间页面'
-          });
+      if (!qrcodeUrl) {
+        // 缓存中没有二维码，调用云函数生成
+        wx.showLoading({
+          title: '生成房间二维码...',
+        });
+        
+        // 调用云函数生成房间二维码
+        const result = await wx.cloud.callFunction({
+          name: 'generateQRCode',
+          data: {
+            roomId: this.data.roomId
+          }
+        });
+        
+        wx.hideLoading();
+        
+        // 详细检查返回结果
+        if (result && result.result) {
+          if (result.result.success) {
+            qrcodeUrl = result.result.qrcodeUrl;
+            // 将二维码存入缓存
+            cacheManager.setRoomQRCode(this.data.roomId, qrcodeUrl);
+            console.log('通过云函数生成房间二维码');
+          } else {
+            // 使用云函数返回的详细错误信息
+            throw new Error(result.result.error || '生成房间二维码失败');
+          }
         } else {
-          // 使用云函数返回的详细错误信息
-          throw new Error(result.result.error || '生成房间二维码失败');
+          throw new Error('云函数调用失败，未返回预期结果');
         }
       } else {
-        throw new Error('云函数调用失败，未返回预期结果');
+        console.log('使用缓存的房间二维码');
       }
+      
+      // 更新二维码URL并显示弹窗
+      this.setData({
+        qrcodeUrl: qrcodeUrl,
+        currentRoomId: this.data.roomId,
+        'qrcodeModal.show': true,
+        // 开发环境提示信息
+        qrcodeEnvironmentInfo: '开发环境中，二维码会先跳转至首页再自动转跳至房间页面'
+      });
     } catch (error) {
       wx.hideLoading();
       console.error('生成房间二维码失败:', error);

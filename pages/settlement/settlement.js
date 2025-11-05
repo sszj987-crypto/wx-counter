@@ -122,19 +122,31 @@ Page({
       // 获取当前用户openId - 添加额外错误处理
       let openId;
       try {
-        const cloudFunctionResult = await wx.cloud.callFunction({
-          name: 'getOpenId'
-        });
+        // 尝试从缓存获取openId
+        const app = getApp();
+        const cacheManager = app.globalData.cacheManager;
+        openId = cacheManager.getOpenId();
         
-        if (!cloudFunctionResult || !cloudFunctionResult.result) {
-          throw new Error('云函数调用返回无效结果');
-        }
-        
-        openId = cloudFunctionResult.result.openId;
         if (!openId) {
-          throw new Error('未获取到用户openId');
+          // 缓存中没有openid，调用云函数获取
+          const cloudFunctionResult = await wx.cloud.callFunction({
+            name: 'getOpenId'
+          });
+          
+          if (!cloudFunctionResult || !cloudFunctionResult.result) {
+            throw new Error('云函数调用返回无效结果');
+          }
+          
+          openId = cloudFunctionResult.result.openId;
+          if (!openId) {
+            throw new Error('未获取到用户openId');
+          }
+          // 将openid存入缓存
+          cacheManager.setOpenId(openId);
+          console.log('通过云函数获取用户openId:', openId);
+        } else {
+          console.log('使用缓存的用户openId:', openId);
         }
-        console.log('当前用户openId:', openId);
       } catch (openIdError) {
         console.error('获取用户openId失败:', openIdError);
         throw new Error('无法获取用户身份信息');

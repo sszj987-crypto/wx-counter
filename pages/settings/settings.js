@@ -103,30 +103,45 @@ Page({
    */
   async onShareTap() {
     try {
-      // 生成进入小程序主页的二维码
-      wx.showLoading({
-        title: '生成小程序码...',
-      })
+      // 尝试从缓存获取通用二维码
+      const app = getApp();
+      const cacheManager = app.globalData.cacheManager;
+      let qrcodeUrl = cacheManager.getGeneralQRCode();
       
-      const result = await wx.cloud.callFunction({
-        name: 'generateQRCode',
-        data: {
-          // 不提供roomId，生成进入主页的二维码
-          page: 'pages/home/home'
-        }
-      })
-      
-      wx.hideLoading()
-      
-      if (result.result.success) {
-        // 更新二维码URL并显示弹窗
-        this.setData({
-          qrcodeUrl: result.result.qrcodeUrl,
-          showQrcode: true
+      if (!qrcodeUrl) {
+        // 缓存中没有二维码，生成进入小程序主页的二维码
+        wx.showLoading({
+          title: '生成小程序码...',
         })
+        
+        const result = await wx.cloud.callFunction({
+          name: 'generateQRCode',
+          data: {
+            // 不提供roomId，生成进入主页的二维码
+            page: 'pages/home/home'
+          }
+        })
+        
+        wx.hideLoading()
+        
+        if (result.result.success) {
+          qrcodeUrl = result.result.qrcodeUrl;
+          // 将二维码存入缓存
+          cacheManager.setGeneralQRCode(qrcodeUrl);
+          console.log('通过云函数生成通用二维码');
+        } else {
+          throw new Error(result.result.error || '生成小程序码失败')
+        }
       } else {
-        throw new Error(result.result.error || '生成小程序码失败')
+        console.log('使用缓存的通用二维码');
+        wx.hideLoading();
       }
+      
+      // 更新二维码URL并显示弹窗
+      this.setData({
+        qrcodeUrl: qrcodeUrl,
+        showQrcode: true
+      })
       
       // 同时打开原生分享菜单选项
       wx.showShareMenu({

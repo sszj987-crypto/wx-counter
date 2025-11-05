@@ -1,4 +1,5 @@
 // app.js
+
 App({
   onLaunch: function () {
     if (!wx.cloud) {
@@ -13,7 +14,21 @@ App({
         traceUser: true,
       });
     }
- 
-    this.globalData = {};
+
+    // 初始化缓存管理器
+    const cacheManager = require('./utils/cache.js');
+    cacheManager.loadFromStorage();
+
+    this.globalData = {
+      // 全局变量
+      cacheManager: cacheManager
+    };
+  },
+  
+  onShow: function() {
+    // 小程序从后台进入前台时，重新加载缓存
+    if (this.globalData.cacheManager) {
+      this.globalData.cacheManager.loadFromStorage();
+    }
   }
 });
