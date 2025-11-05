@@ -132,13 +132,6 @@ page {
   max-width: calc(100% - 120rpx); /* 为分数部分留出足够空间 */
 }
 
-.player-avatar {
-  width: 60rpx;
-  height: 60rpx;
-  border-radius: 50%;
-  margin-right: 15rpx;
-}
-
 .player-name {
   font-size: 28rpx;
   color: #333;
@@ -146,6 +139,7 @@ page {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  margin: 0 10rpx;
 }
 
 .arrow {
