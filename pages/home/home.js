@@ -53,6 +53,8 @@ Page({
     }).finally(() => {
       // 初始化完成后检查活跃房间
       this.checkActiveRoom()
+      // 检查是否需要提示用户设置用户名
+      this.checkAndPromptForUserInfo()
     })
     
     // 如果存在有效roomId，跳转到对应房间页面
@@ -131,6 +133,46 @@ Page({
         userInfo: defaultUserInfo,
         hasUserInfo: true
       })
+    }
+  },
+
+  /**
+   * 检查用户信息并在必要时提示设置
+   */
+  async checkAndPromptForUserInfo() {
+    try {
+      const app = getApp()
+      const userInfo = app.globalData.userInfo
+      
+      // 检查用户信息是否存在且不是默认值
+      if (!userInfo || 
+          userInfo.nickName === '玩家' || 
+          (userInfo.nickName && userInfo.nickName.startsWith('玩家') && /^\d+$/.test(userInfo.nickName.substring(2)))) {
+        console.log('用户信息不存在或使用默认用户名，提示用户设置')
+        
+        // 显示弹框询问是否需要设置用户名
+        wx.showModal({
+          title: '设置用户名',
+          content: '检测到您还没有设置用户名，是否前往设置个人昵称和头像？',
+          confirmText: '去设置',
+          cancelText: '暂不设置',
+          success: (res) => {
+            if (res.confirm) {
+              console.log('用户点击去设置')
+              // 跳转到个人资料页面
+              wx.navigateTo({
+                url: '/pages/profile/profile'
+              })
+            } else if (res.cancel) {
+              console.log('用户点击暂不设置')
+            }
+          }
+        })
+      } else {
+        console.log('用户信息已设置，无需提示')
+      }
+    } catch (error) {
+      console.error('检查用户信息时出错:', error)
     }
   },
 
