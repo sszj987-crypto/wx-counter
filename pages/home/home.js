@@ -272,6 +272,61 @@ Page({
     console.log('点击开始可乐计分器按钮 - 创建新房间')
     
     try {
+      // 获取当前用户openId
+      let openId = null
+      try {
+        // 尝试从缓存获取openId
+        const app = getApp();
+        const cacheManager = app.globalData.cacheManager;
+        openId = cacheManager.getOpenId();
+        
+        if (!openId) {
+          // 缓存中没有openid，调用云函数获取
+          const { result: userInfoResult } = await wx.cloud.callFunction({
+            name: 'getOpenId'
+          })
+          openId = userInfoResult.openId
+          // 将openid存入缓存
+          cacheManager.setOpenId(openId);
+          console.log('通过云函数获取用户openId:', openId)
+        } else {
+          console.log('使用缓存的用户openId:', openId)
+        }
+      } catch (err) {
+        console.log('获取openId失败:', err)
+        wx.showToast({
+          title: '无法获取用户信息',
+          icon: 'none'
+        })
+        return
+      }
+      
+      // 检查用户已创建的房间数量
+      try {
+        const db = wx.cloud.database()
+        const result = await db.collection('rooms')
+          .where({
+            _openid: openId
+          })
+          .get()
+          
+        console.log('用户已创建的房间数量:', result.data.length)
+        
+        // 如果用户已创建的房间超过2个，提示无法创建新房间
+        if (result.data.length >= 2) {
+          wx.showModal({
+            title: '无法创建房间',
+            content: '您已创建了2个房间，无法创建更多房间。请先结算之前的房间。',
+            showCancel: false,
+            confirmText: '我知道了'
+          })
+          return
+        }
+      } catch (checkError) {
+        console.error('检查房间数量失败:', checkError)
+        // 即使检查失败，也允许用户继续创建房间
+      }
+      
       // 直接创建新房间
       wx.navigateTo({
         url: '/pages/room/room?mode=create',

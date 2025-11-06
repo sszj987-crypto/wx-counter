@@ -219,6 +219,39 @@ Page({
       const openId = userInfo.openId;
       console.log('当前用户openId:', openId);
       
+      // 检查用户已创建的房间数量
+      try {
+        const db = wx.cloud.database()
+        const result = await db.collection('rooms')
+          .where({
+            _openid: openId
+          })
+          .get()
+          
+        console.log('用户已创建的房间数量:', result.data.length)
+        
+        // 如果用户已创建的房间超过2个，提示无法创建新房间
+        if (result.data.length >= 2) {
+          wx.showModal({
+            title: '无法创建房间',
+            content: '您已创建了2个房间，无法创建更多房间。请先结算之前的房间。',
+            showCancel: false,
+            confirmText: '我知道了',
+            success: (res) => {
+              // 用户点击我知道了，返回首页
+              wx.switchTab({
+                url: '/pages/home/home'
+              });
+            }
+          })
+          this.setData({ isCreating: false });
+          return
+        }
+      } catch (checkError) {
+        console.error('检查房间数量失败:', checkError)
+        // 即使检查失败，也允许用户继续创建房间
+      }
+      
       // 更新currentUserOpenId
       this.setData({
         currentUserOpenId: openId
