@@ -11,7 +11,7 @@ Page({
     isCreatingNewRoom: false
   },
 
-  onLoad(options) {
+  async onLoad(options) {
     console.log('结算页面加载，参数:', options);
     
     // 检查房间是否已关闭
@@ -35,7 +35,7 @@ Page({
     try {
       const decodedData = decodeURIComponent(options.data || '');
       const data = JSON.parse(decodedData || '{}');
-      const { roomId, roomNumber, players, rate } = data;
+      let { roomId, roomNumber, players, rate } = data;
     
       if (!players || !Array.isArray(players)) {
         wx.showToast({
@@ -46,6 +46,18 @@ Page({
           wx.navigateBack();
         }, 1500);
         return;
+      }
+
+      // 如果roomNumber为空但roomId存在，尝试从数据库获取房间信息
+      if ((!roomNumber || roomNumber === '') && roomId) {
+        try {
+          const roomResult = await db.collection('rooms').doc(roomId).get();
+          if (roomResult && roomResult.data) {
+            roomNumber = roomResult.data.roomNumber;
+          }
+        } catch (dbError) {
+          console.error('获取房间信息失败:', dbError);
+        }
       }
 
       // 计算倍率分并排序（按倍率分降序）
@@ -96,6 +108,11 @@ Page({
       });
     } catch (error) {
       console.error('加载结算数据失败:', error);
+      // 即使加载失败，也要确保界面能正常显示
+      wx.showToast({
+        title: '加载数据失败',
+        icon: 'error'
+      });
     }
   },
   
