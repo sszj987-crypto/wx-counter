@@ -1,0 +1,14 @@
+{
+  "name": "cleanupRooms",
+  "version": "1.0.0",
+  "description": "清理24小时前创建的房间",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.0"
+  }
+}
