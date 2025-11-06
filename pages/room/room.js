@@ -831,7 +831,7 @@ Page({
   },
 
   /**
-   * 显示给分弹窗 - 基础可靠版，确保键盘弹出
+   * 显示给分弹窗 - 优化版，提高响应速度
    */
   showTransferModal(e) {
     try {
@@ -927,9 +927,6 @@ Page({
    * 确认给分
    */
   async confirmTransfer() {
-    console.log('执行confirmTransfer，检查房间状态');
-    console.log('当前房间数据:', this.data.roomData);
-    
     const { targetPlayer, score } = this.data.transferModal;
     
     if (!score || score <= 0) {
@@ -939,6 +936,12 @@ Page({
       });
       return;
     }
+
+    // 显示加载提示
+    wx.showLoading({
+      title: '处理中...',
+      mask: true
+    });
 
     try {
       const result = await wx.cloud.callFunction({
@@ -950,6 +953,9 @@ Page({
         }
       });
 
+      // 隐藏加载提示
+      wx.hideLoading();
+
       if (result.result.success) {
         wx.showToast({
           title: '给分成功',
@@ -957,12 +963,18 @@ Page({
         });
         this.hideTransferModal();
       } else {
-        throw new Error(result.result.error);
+        wx.showToast({
+          title: result.result.error,
+          icon: 'error'
+        });
       }
     } catch (error) {
       console.error('给分失败:', error);
+      // 隐藏加载提示
+      wx.hideLoading();
+      
       wx.showToast({
-        title: error.message || '给分失败',
+        title: '给分失败，请重试',
         icon: 'error'
       });
     }
@@ -1195,6 +1207,18 @@ Page({
         });
       }
     }
+  },
+
+  /**
+   * 监听用户点击左上角返回按钮的事件
+   */
+  onBackPress() {
+    console.log('房间页面返回按钮点击');
+    // 返回主页而不是直接退出小程序
+    wx.switchTab({
+      url: '/pages/home/home'
+    });
+    return true; // 阻止默认返回行为
   },
 
   /**

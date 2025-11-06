@@ -146,6 +146,9 @@ page {
   border-radius: 16rpx;
   overflow: hidden;
   box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .section-title {
@@ -174,12 +177,15 @@ page {
 .players-table {
   background: white;
   overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 玩家列表滚动区域样式 */
 .players-scroll {
   width: 100%;
-  height: 600rpx; /* 增加高度以显示更多玩家 */
+  flex: 1;
   overflow-x: hidden;
   background: white;
 }
@@ -206,6 +212,11 @@ page {
 .table-header, .table-row {
   display: flex;
   border-bottom: 1rpx solid #f0f0f0;
+}
+
+/* 表格主体样式 */
+.table-body {
+  flex: 1;
 }
 
 /* 保证表头和表格主体的内边距一致 */
