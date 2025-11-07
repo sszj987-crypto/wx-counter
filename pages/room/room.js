@@ -219,12 +219,13 @@ Page({
       const openId = userInfo.openId;
       console.log('当前用户openId:', openId);
       
-      // 检查用户已创建的房间数量
+      // 检查用户已创建的房间数量（排除已结算的房间）
       try {
         const db = wx.cloud.database()
         const result = await db.collection('rooms')
           .where({
-            _openid: openId
+            _openid: openId,
+            status: 'active' // 只统计活跃状态的房间
           })
           .get()
           
@@ -269,6 +270,7 @@ Page({
         _id: roomId,
         _openid: openId, // 使用_openid替代creatorOpenId
         roomNumber: roomNumber,
+        status: 'active', // 新增：房间状态字段，默认为active
         createTime: new Date(),
         players: [{
           openId: openId,
@@ -405,7 +407,34 @@ Page({
 
       // 查找房间
       console.log('查找房间，房间ID:', roomId);
-      const roomResult = await wx.cloud.database().collection('rooms').doc(roomId).get();
+      let roomResult;
+      try {
+        roomResult = await wx.cloud.database().collection('rooms').doc(roomId).get();
+      } catch (error) {
+        // 检查是否是因为房间状态为inactive导致的权限错误
+        if (error.errMsg && error.errMsg.includes('permission denied')) {
+          console.log('房间可能已结算，状态为inactive');
+          // 尝试获取房间数据，检查状态
+          try {
+            const inactiveRoomResult = await wx.cloud.database().collection('rooms').doc(roomId).get();
+            if (inactiveRoomResult.data && inactiveRoomResult.data.status === 'inactive') {
+              // 房间已结算，跳转到结算页面
+              wx.redirectTo({
+                url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
+                  roomId: inactiveRoomResult.data._id,
+                  roomNumber: inactiveRoomResult.data.roomNumber,
+                  players: inactiveRoomResult.data.players,
+                  rate: 1 // 默认倍率
+                }))}`
+              });
+              return;
+            }
+          } catch (checkError) {
+            console.log('检查房间状态失败:', checkError);
+          }
+        }
+        throw error;
+      }
       
       if (!roomResult.data) {
         throw new Error('房间不存在');
@@ -413,6 +442,21 @@ Page({
 
       const room = roomResult.data;
       console.log('找到房间:', room);
+      
+      // 检查房间状态是否为inactive
+      if (room.status === 'inactive') {
+        console.log('房间已结算，状态为inactive');
+        // 房间已结算，跳转到结算页面
+        wx.redirectTo({
+          url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
+            roomId: room._id,
+            roomNumber: room.roomNumber,
+            players: room.players,
+            rate: 1 // 默认倍率
+          }))}`
+        });
+        return;
+      }
 
 
 
@@ -807,12 +851,27 @@ Page({
       onChange: async (snapshot) => {
         console.log('房间数据更新:', snapshot.docs);
         
-        // 检查房间是否被删除（docs长度为0表示文档被删除）
+        // 检查房间是否被删除或状态变为inactive（docs长度为0表示文档被删除）
         if (snapshot.docs.length === 0) {
           console.log('房间已被结算删除');
           // 房间已被删除，直接跳转到结算页面
           wx.redirectTo({
             url: `/pages/settlement/settlement?roomClosed=true`
+          });
+          return;
+        }
+        
+        // 检查房间状态是否为inactive
+        if (snapshot.docs.length > 0 && snapshot.docs[0].status === 'inactive') {
+          console.log('房间已结算，状态为inactive');
+          // 房间已结算，跳转到结算页面
+          wx.redirectTo({
+            url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
+              roomId: snapshot.docs[0]._id,
+              roomNumber: snapshot.docs[0].roomNumber,
+              players: snapshot.docs[0].players,
+              rate: 1 // 默认倍率
+            }))}`
           });
           return;
         }
@@ -855,6 +914,29 @@ Page({
             url: `/pages/settlement/settlement?roomClosed=true`
           });
           return;
+        }
+        
+        // 检查是否是因为房间状态为inactive导致的错误
+        if (error.errMsg && error.errMsg.includes('permission denied')) {
+          console.log('房间可能已结算，状态为inactive');
+          // 尝试获取房间数据，检查状态
+          try {
+            const roomResult = await db.collection('rooms').doc(this.data.roomId).get();
+            if (roomResult.data && roomResult.data.status === 'inactive') {
+              // 房间已结算，跳转到结算页面
+              wx.redirectTo({
+                url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
+                  roomId: roomResult.data._id,
+                  roomNumber: roomResult.data.roomNumber,
+                  players: roomResult.data.players,
+                  rate: 1 // 默认倍率
+                }))}`
+              });
+              return;
+            }
+          } catch (checkError) {
+            console.log('检查房间状态失败:', checkError);
+          }
         }
       }
     });
@@ -1264,10 +1346,14 @@ Page({
     }
     
     // 通知home页面刷新活跃房间状态
-    const eventChannel = this.getOpenerEventChannel();
-    if (eventChannel) {
-      console.log('页面卸载，通知home页面刷新活跃房间');
-      eventChannel.emit('roomUpdated');
+    try {
+      const eventChannel = this.getOpenerEventChannel();
+      if (eventChannel && typeof eventChannel.emit === 'function') {
+        console.log('页面卸载，通知home页面刷新活跃房间');
+        eventChannel.emit('roomUpdated');
+      }
+    } catch (error) {
+      console.error('通知home页面刷新活跃房间失败:', error);
     }
   }
 });

@@ -301,12 +301,13 @@ Page({
         return
       }
       
-      // 检查用户已创建的房间数量
+      // 检查用户已创建的房间数量（排除已结算的房间）
       try {
         const db = wx.cloud.database()
         const result = await db.collection('rooms')
           .where({
-            _openid: openId
+            _openid: openId,
+            status: 'active' // 只统计活跃状态的房间
           })
           .get()
           
@@ -435,16 +436,17 @@ Page({
           return null
         }
 
-        // 查询房间 - 不再通过status字段过滤
+        // 查询房间 - 只显示active状态的房间
         const db = wx.cloud.database()
         // 数据库索引建议:
-        // 组合索引: createTime: 降序, _id: 升序, players: 升序
+        // 组合索引: createTime: 降序, _id: 升序, players: 升序, status: 升序
         const result = await db.collection('rooms')
           .where({
             players: db.command.elemMatch({
               openId: openId
             }),
-            _id: db.command.exists(true) // 确保记录存在
+            _id: db.command.exists(true), // 确保记录存在
+            status: 'active' // 只显示活跃状态的房间
           })
           .orderBy('createTime', 'desc') // 获取最新创建的房间
           .limit(1) // 只获取一个最新的房间

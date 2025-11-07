@@ -272,15 +272,20 @@ Page({
 
   /**
    * 页面卸载时触发
-   * 立即删除房间数据，确保主页面无法查询到已删除的房间
+   * 将房间状态改为inactive而不是直接删除，确保可以查看历史结算数据
    */
   async onUnload() {
-    console.log('结算页面卸载，立即删除房间数据');
+    console.log('结算页面卸载，将房间状态改为inactive');
     if (this.data.roomId) {
       try {
-        // 立即删除房间数据
-        await db.collection('rooms').doc(this.data.roomId).remove();
-        console.log('房间数据已成功删除:', this.data.roomId);
+        // 将房间状态更新为inactive
+        await db.collection('rooms').doc(this.data.roomId).update({
+          data: {
+            status: 'inactive',
+            closeTime: new Date() // 记录关闭时间
+          }
+        });
+        console.log('房间状态已更新为inactive:', this.data.roomId);
         
         // 通知home页面刷新活跃房间列表
         const pages = getCurrentPages();
@@ -295,7 +300,7 @@ Page({
           }
         }
       } catch (error) {
-        console.error('删除房间数据失败:', error);
+        console.error('更新房间状态失败:', error);
       }
     }
   }
