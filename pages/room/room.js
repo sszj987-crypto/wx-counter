@@ -356,11 +356,13 @@ Page({
       // 生成小程序码（加入房间时不自动显示弹窗）
       this.generateQRCode();
       
-      // 检查台位状态
+      // 检查是否存在台位/茶水玩家
       await this.checkTeaServiceStatus(roomData);
       
-      // 开始监听房间数据
-      this.watchRoomData();
+      // 只有在还没有监听器的情况下才开始监听房间数据
+      if (!this.watcher) {
+        this.watchRoomData();
+      }
     } catch (error) {
       console.error('创建房间失败:', error);
       wx.showToast({
@@ -475,7 +477,10 @@ Page({
         });
         // 检查是否存在台位/茶水玩家
         await this.checkTeaServiceStatus(room);
-        this.watchRoomData();
+        // 只有在还没有监听器的情况下才开始监听房间数据
+        if (!this.watcher) {
+          this.watchRoomData();
+        }
         return;
       }
       
@@ -582,8 +587,10 @@ Page({
       setTimeout(() => {
         // 检查是否存在台位/茶水玩家
         this.checkTeaServiceStatus(updatedRoomData);
-        // 开始监听房间数据
-        this.watchRoomData();
+        // 只有在还没有监听器的情况下才开始监听房间数据
+        if (!this.watcher) {
+          this.watchRoomData();
+        }
       }, 100);
     } catch (error) {
       console.error('加入房间失败:', error);
@@ -847,102 +854,128 @@ Page({
       this.watcher = null;
     }
     
-    const watcher = db.collection('rooms').doc(this.data.roomId).watch({
-      onChange: async (snapshot) => {
-        console.log('房间数据更新:', snapshot.docs);
-        
-        // 检查房间是否被删除或状态变为inactive（docs长度为0表示文档被删除）
-        if (snapshot.docs.length === 0) {
-          console.log('房间已被结算删除');
-          // 房间已被删除，直接跳转到结算页面
-          wx.redirectTo({
-            url: `/pages/settlement/settlement?roomClosed=true`
-          });
-          return;
-        }
-        
-        // 检查房间状态是否为inactive
-        if (snapshot.docs.length > 0 && snapshot.docs[0].status === 'inactive') {
-          console.log('房间已结算，状态为inactive');
-          // 房间已结算，跳转到结算页面
-          wx.redirectTo({
-            url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
-              roomId: snapshot.docs[0]._id,
-              roomNumber: snapshot.docs[0].roomNumber,
-              players: snapshot.docs[0].players,
-              rate: 1 // 默认倍率
-            }))}`
-          });
-          return;
-        }
-        
-        if (snapshot.docs.length > 0) {
-          const updatedRoomData = snapshot.docs[0];
-          this.setData({
-            roomData: updatedRoomData
-          });
-          // 检查台位/茶水状态
-          await this.checkTeaServiceStatus(updatedRoomData);
+    // 添加重试机制
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    const startWatcher = () => {
+      const watcher = db.collection('rooms').doc(this.data.roomId).watch({
+        onChange: async (snapshot) => {
+          console.log('房间数据更新:', snapshot.docs);
           
-          // 如果台位/茶水玩家存在，且分数发生变化，同步更新teaServiceScore
-          if (updatedRoomData.isTeaServiceEnabled || this.data.isTeaServiceEnabled) {
-            const teaServicePlayer = updatedRoomData.players.find(
-              player => player.nickName === '台位/茶水' || player.openId.startsWith('tea_service_')
-            );
+          // 检查房间是否被删除或状态变为inactive（docs长度为0表示文档被删除）
+          if (snapshot.docs.length === 0) {
+            console.log('房间已被结算删除');
+            // 房间已被删除，直接跳转到结算页面
+            wx.redirectTo({
+              url: `/pages/settlement/settlement?roomClosed=true`
+            });
+            return;
+          }
+          
+          // 检查房间状态是否为inactive
+          if (snapshot.docs.length > 0 && snapshot.docs[0].status === 'inactive') {
+            console.log('房间已结算，状态为inactive');
+            // 房间已结算，跳转到结算页面
+            wx.redirectTo({
+              url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
+                roomId: snapshot.docs[0]._id,
+                roomNumber: snapshot.docs[0].roomNumber,
+                players: snapshot.docs[0].players,
+                rate: 1 // 默认倍率
+              }))}`
+            });
+            return;
+          }
+          
+          if (snapshot.docs.length > 0) {
+            const updatedRoomData = snapshot.docs[0];
+            this.setData({
+              roomData: updatedRoomData
+            });
+            // 检查台位/茶水状态
+            await this.checkTeaServiceStatus(updatedRoomData);
             
-            if (teaServicePlayer && teaServicePlayer.score !== updatedRoomData.teaServiceScore) {
-              try {
-                await db.collection('rooms').doc(this.data.roomId).update({
-                  data: {
-                    teaServiceScore: teaServicePlayer.score
-                  }
-                });
-              } catch (error) {
-                console.error('同步台位分数失败:', error);
+            // 如果台位/茶水玩家存在，且分数发生变化，同步更新teaServiceScore
+            if (updatedRoomData.isTeaServiceEnabled || this.data.isTeaServiceEnabled) {
+              const teaServicePlayer = updatedRoomData.players.find(
+                player => player.nickName === '台位/茶水' || player.openId.startsWith('tea_service_')
+              );
+              
+              if (teaServicePlayer && teaServicePlayer.score !== updatedRoomData.teaServiceScore) {
+                try {
+                  await db.collection('rooms').doc(this.data.roomId).update({
+                    data: {
+                      teaServiceScore: teaServicePlayer.score
+                    }
+                  });
+                } catch (error) {
+                  console.error('同步台位分数失败:', error);
+                }
               }
             }
           }
-        }
-      },
-      onError: async (error) => {
-        console.error('监听房间数据失败:', error);
-        // 检查错误类型，如果是因为房间不存在导致的错误，可能是房间已被删除
-        if (error.errMsg && (error.errMsg.includes('document not exist') || error.errMsg.includes('找不到该记录'))) {
-          console.log('房间可能已被结算删除');
-          // 房间不存在，直接跳转到结算页面
-          wx.redirectTo({
-            url: `/pages/settlement/settlement?roomClosed=true`
-          });
-          return;
-        }
-        
-        // 检查是否是因为房间状态为inactive导致的错误
-        if (error.errMsg && error.errMsg.includes('permission denied')) {
-          console.log('房间可能已结算，状态为inactive');
-          // 尝试获取房间数据，检查状态
-          try {
-            const roomResult = await db.collection('rooms').doc(this.data.roomId).get();
-            if (roomResult.data && roomResult.data.status === 'inactive') {
-              // 房间已结算，跳转到结算页面
-              wx.redirectTo({
-                url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
-                  roomId: roomResult.data._id,
-                  roomNumber: roomResult.data.roomNumber,
-                  players: roomResult.data.players,
-                  rate: 1 // 默认倍率
-                }))}`
-              });
-              return;
+        },
+        onError: async (error) => {
+          console.error('监听房间数据失败:', error);
+          // 检查错误类型，如果是因为房间不存在导致的错误，可能是房间已被删除
+          if (error.errMsg && (error.errMsg.includes('document not exist') || error.errMsg.includes('找不到该记录'))) {
+            console.log('房间可能已被结算删除');
+            // 房间不存在，直接跳转到结算页面
+            wx.redirectTo({
+              url: `/pages/settlement/settlement?roomClosed=true`
+            });
+            return;
+          }
+          
+          // 检查是否是因为房间状态为inactive导致的错误
+          if (error.errMsg && error.errMsg.includes('permission denied')) {
+            console.log('房间可能已结算，状态为inactive');
+            // 尝试获取房间数据，检查状态
+            try {
+              const roomResult = await db.collection('rooms').doc(this.data.roomId).get();
+              if (roomResult.data && roomResult.data.status === 'inactive') {
+                // 房间已结算，跳转到结算页面
+                wx.redirectTo({
+                  url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
+                    roomId: roomResult.data._id,
+                    roomNumber: roomResult.data.roomNumber,
+                    players: roomResult.data.players,
+                    rate: 1 // 默认倍率
+                  }))}`
+                });
+                return;
+              }
+            } catch (checkError) {
+              console.log('检查房间状态失败:', checkError);
             }
-          } catch (checkError) {
-            console.log('检查房间状态失败:', checkError);
+          }
+          
+          // 添加重试机制
+          if (retryCount < maxRetries) {
+            retryCount++;
+            console.log(`监听器出错，第${retryCount}次重试`);
+            // 延迟一段时间后重新启动监听器
+            setTimeout(() => {
+              this.watcher.close();
+              startWatcher();
+            }, 2000);
+          } else {
+            console.log('监听器重试次数已达上限');
+            wx.showToast({
+              title: '数据同步异常，请刷新页面',
+              icon: 'none'
+            });
           }
         }
-      }
-    });
+      });
 
-    // 页面卸载时关闭监听
-    this.watcher = watcher;
+      // 页面卸载时关闭监听
+      this.watcher = watcher;
+    };
+    
+    // 启动监听器
+    startWatcher();
   },
 
   /**
@@ -1076,6 +1109,10 @@ Page({
           title: '给分成功',
           icon: 'success'
         });
+        
+        // 给分成功后主动刷新房间数据
+        await this.refreshRoomDataAfterTransfer();
+        
         this.hideTransferModal();
       } else {
         wx.showToast({
@@ -1092,6 +1129,41 @@ Page({
         title: '给分失败，请重试',
         icon: 'error'
       });
+    }
+  },
+
+  /**
+   * 给分成功后刷新房间数据
+   */
+  async refreshRoomDataAfterTransfer(retryCount = 0) {
+    try {
+      // 延迟一小段时间确保数据库更新完成
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // 获取最新的房间数据
+      const result = await db.collection('rooms').doc(this.data.roomId).get();
+      
+      if (result.data) {
+        // 更新房间数据
+        this.setData({
+          roomData: result.data
+        });
+        
+        console.log('房间数据刷新成功');
+      }
+    } catch (error) {
+      console.error('刷新房间数据失败:', error);
+      // 最多重试3次
+      if (retryCount < 3) {
+        // 清除之前的定时器（如果有的话）
+        if (this.retryTimer) {
+          clearTimeout(this.retryTimer);
+        }
+        // 设置1秒后重试
+        this.retryTimer = setTimeout(() => {
+          this.refreshRoomDataAfterTransfer(retryCount + 1);
+        }, 1000);
+      }
     }
   },
 
@@ -1337,12 +1409,17 @@ Page({
   },
 
   /**
-   * 生命周期函数--监听页面卸载
+   * 页面卸载时清除监听器和定时器
    */
   onUnload() {
-    // 关闭数据监听
+    // 关闭数据库监听
     if (this.watcher) {
       this.watcher.close();
+    }
+    
+    // 清理可能存在的定时器
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer);
     }
     
     // 通知home页面刷新活跃房间状态
