@@ -861,11 +861,8 @@ Page({
     const startWatcher = () => {
       const watcher = db.collection('rooms').doc(this.data.roomId).watch({
         onChange: async (snapshot) => {
-          console.log('房间数据更新:', snapshot.docs);
-          
           // 检查房间是否被删除或状态变为inactive（docs长度为0表示文档被删除）
           if (snapshot.docs.length === 0) {
-            console.log('房间已被结算删除');
             // 房间已被删除，直接跳转到结算页面
             wx.redirectTo({
               url: `/pages/settlement/settlement?roomClosed=true`
@@ -875,7 +872,6 @@ Page({
           
           // 检查房间状态是否为inactive
           if (snapshot.docs.length > 0 && snapshot.docs[0].status === 'inactive') {
-            console.log('房间已结算，状态为inactive');
             // 房间已结算，跳转到结算页面
             wx.redirectTo({
               url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
@@ -890,9 +886,26 @@ Page({
           
           if (snapshot.docs.length > 0) {
             const updatedRoomData = snapshot.docs[0];
-            this.setData({
-              roomData: updatedRoomData
-            });
+            
+            // 保存当前的transferModal状态，特别是targetPlayer
+            // 这样在房间数据更新时，可以保留targetPlayer，避免给分弹窗状态丢失
+            const currentTransferModal = this.data.transferModal;
+            
+            // 如果弹窗正在显示，确保保留targetPlayer和score状态
+            if (currentTransferModal.show) {
+              this.setData({
+                roomData: updatedRoomData,
+                'transferModal.targetPlayer': currentTransferModal.targetPlayer,
+                'transferModal.score': currentTransferModal.score,
+                'transferModal.focusTrigger': currentTransferModal.focusTrigger
+              });
+            } else {
+              // 如果弹窗没有显示，可以重置transferModal
+              this.setData({
+                roomData: updatedRoomData
+              });
+            }
+            
             // 检查台位/茶水状态
             await this.checkTeaServiceStatus(updatedRoomData);
             
@@ -920,7 +933,6 @@ Page({
           console.error('监听房间数据失败:', error);
           // 检查错误类型，如果是因为房间不存在导致的错误，可能是房间已被删除
           if (error.errMsg && (error.errMsg.includes('document not exist') || error.errMsg.includes('找不到该记录'))) {
-            console.log('房间可能已被结算删除');
             // 房间不存在，直接跳转到结算页面
             wx.redirectTo({
               url: `/pages/settlement/settlement?roomClosed=true`
@@ -930,7 +942,6 @@ Page({
           
           // 检查是否是因为房间状态为inactive导致的错误
           if (error.errMsg && error.errMsg.includes('permission denied')) {
-            console.log('房间可能已结算，状态为inactive');
             // 尝试获取房间数据，检查状态
             try {
               const roomResult = await db.collection('rooms').doc(this.data.roomId).get();
@@ -954,14 +965,12 @@ Page({
           // 添加重试机制
           if (retryCount < maxRetries) {
             retryCount++;
-            console.log(`监听器出错，第${retryCount}次重试`);
             // 延迟一段时间后重新启动监听器
             setTimeout(() => {
               this.watcher.close();
               startWatcher();
             }, 2000);
           } else {
-            console.log('监听器重试次数已达上限');
             wx.showToast({
               title: '数据同步异常，请刷新页面',
               icon: 'none'
@@ -993,33 +1002,28 @@ Page({
         });
         return;
       }
-
-      // 重置弹窗状态，设置为不可见
+      
+      // 保存当前玩家的临时引用，确保在后续设置过程中不会丢失
+      const tempPlayer = player;
+      
+      // 设置弹窗状态，先清空其他属性但保留targetPlayer
       this.setData({
-        'transferModal.show': false,
-        'transferModal.targetPlayer': player,
+        'transferModal.targetPlayer': tempPlayer,
         'transferModal.score': '',
         'transferModal.focusTrigger': false
-      });
-      
-      // 强制下一个事件循环再显示弹窗，确保DOM完全重置
-      setTimeout(() => {
+      }, () => {
         // 显示弹窗
         this.setData({
           'transferModal.show': true
         }, () => {
-          console.log('弹窗已显示，开始聚焦输入框');
-          
-          // 在弹窗完全渲染后，使用较长延迟确保DOM更新完成
+          // 延迟聚焦输入框
           setTimeout(() => {
-            console.log('触发输入框聚焦');
-            // 通过切换focusTrigger状态来强制触发input的focus属性
             this.setData({
               'transferModal.focusTrigger': true
             });
-          }, 300); // 使用300ms确保在各种设备上都有足够时间渲染
+          }, 200);
         });
-      }, 100);
+      });
     } catch (error) {
       console.error('显示给分弹窗失败:', error);
     }
@@ -1029,12 +1033,35 @@ Page({
    * 隐藏给分弹窗
    */
   hideTransferModal() {
-    this.setData({
-      'transferModal.show': false,
-      'transferModal.targetPlayer': null,
-      'transferModal.score': '',
-      'transferModal.focusTrigger': false
-    });
+    // 检查是否真的需要隐藏弹窗
+    if (!this.data.transferModal.show) {
+      return;
+    }
+    
+    // 仅在用户主动点击取消或关闭按钮时清空targetPlayer
+    const currentStack = new Error().stack;
+    // 检查调用栈中是否有"取消"按钮或"×"按钮的事件监听器
+    const isUserInitiatedCancel = currentStack.includes('hideTransferModal@') && 
+                                 (currentStack.includes('cancel') || 
+                                  currentStack.includes('close') ||
+                                  currentStack.includes('modal-close'));
+    
+    // 如果不是用户主动取消，保持targetPlayer状态
+    if (!isUserInitiatedCancel) {
+      this.setData({
+        'transferModal.show': false,
+        'transferModal.score': '',
+        'transferModal.focusTrigger': false
+      });
+    } else {
+      // 如果是用户主动取消，清空所有状态
+      this.setData({
+        'transferModal.show': false,
+        'transferModal.targetPlayer': null,
+        'transferModal.score': '',
+        'transferModal.focusTrigger': false
+      });
+    }
   },
 
   /**
@@ -1076,6 +1103,24 @@ Page({
    */
   async confirmTransfer() {
     const { targetPlayer, score } = this.data.transferModal;
+    
+    // 检查目标玩家是否有效
+    if (!targetPlayer) {
+      wx.showToast({
+        title: '请选择要给分的玩家',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    // 检查目标玩家ID是否有效
+    if (!targetPlayer.openId) {
+      wx.showToast({
+        title: '玩家信息不完整，请重新选择',
+        icon: 'none'
+      });
+      return;
+    }
     
     if (!score || score <= 0) {
       wx.showToast({
@@ -1140,16 +1185,29 @@ Page({
       // 延迟一小段时间确保数据库更新完成
       await new Promise(resolve => setTimeout(resolve, 500));
       
+      // 保存当前的transferModal状态，特别是targetPlayer
+      // 这样在刷新房间数据后，可以保留targetPlayer，避免给分弹窗状态丢失
+      const currentTransferModal = this.data.transferModal;
+      
+      // 如果弹窗正在显示，保留完整的transferModal状态
+      let modalStateToRestore = {};
+      if (currentTransferModal.show) {
+        modalStateToRestore = {
+          'transferModal.targetPlayer': currentTransferModal.targetPlayer,
+          'transferModal.score': currentTransferModal.score,
+          'transferModal.focusTrigger': currentTransferModal.focusTrigger
+        };
+      }
+      
       // 获取最新的房间数据
       const result = await db.collection('rooms').doc(this.data.roomId).get();
       
       if (result.data) {
-        // 更新房间数据
+        // 更新房间数据，并保留transferModal状态
         this.setData({
-          roomData: result.data
+          roomData: result.data,
+          ...modalStateToRestore
         });
-        
-        console.log('房间数据刷新成功');
       }
     } catch (error) {
       console.error('刷新房间数据失败:', error);
