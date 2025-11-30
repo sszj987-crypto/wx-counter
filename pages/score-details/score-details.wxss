@@ -93,8 +93,7 @@ page {
 .record-time {
   font-size: 28rpx;
   color: #999;
-  margin-bottom: 10rpx;
-  text-align: center;
+  text-align: left;
 }
 
 .empty-text {
@@ -113,6 +112,11 @@ page {
 
 .record-item:last-child {
   border-bottom: none;
+}
+
+.record-footer {
+  margin-top: 15rpx;
+  width: 100%;
 }
 
 .record-header {

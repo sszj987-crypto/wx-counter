@@ -26,11 +26,7 @@
           <view class="empty-text">暂无给分记录</view>
         </view>
 
-        <view class="record-item" wx:for="{{scoreRecords}}" wx:key="_id">
-          <view class="record-header">
-            <view class="record-time">{{formatTime(item.createTime)}}</view>
-          </view>
-          
+        <view class="record-item" wx:for="{{scoreRecords}}" wx:key="index">
           <view class="record-content">
             <view class="record-player-info">
               <view class="player-name">{{item.fromPlayerNickName || '玩家'}}</view>
@@ -41,6 +37,10 @@
             <view class="record-score">
               <view class="score-value" style="color: #52c41a">+{{item.score}}</view>
             </view>
+          </view>
+          
+          <view class="record-footer">
+            <view class="record-time">{{item.displayTime || formatTime(item.createTime)}}</view>
           </view>
         </view>
       </view>

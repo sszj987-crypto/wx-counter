@@ -8,6 +8,29 @@ Page({
     scoreRecords: [],
     isLoading: true
   },
+
+  // 格式化时间函数 - 直接定义在Page对象中
+  formatTime(time) {
+    if (!time) {
+      return '';
+    }
+    
+    try {
+      const date = new Date(time);
+      if (isNaN(date.getTime())) {
+        return '';
+      }
+      
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hour = String(date.getHours()).padStart(2, '0');
+      const minute = String(date.getMinutes()).padStart(2, '0');
+      
+      return `${month}-${day} ${hour}:${minute}`;
+    } catch (error) {
+      return '';
+    }
+  },
   
   /**
    * 页面生命周期 - 监听页面卸载
@@ -15,14 +38,12 @@ Page({
    */
   onUnload() {
     // 可以在这里添加一些清理逻辑
-    console.log('给分详情页面卸载');
   },
   
   /**
    * 监听用户点击左上角返回按钮的事件
    */
   onBackPress() {
-    console.log('给分详情页面返回按钮点击');
     wx.navigateBack({
       delta: 1
     });
@@ -30,7 +51,6 @@ Page({
   },
 
   onLoad(options) {
-    console.log('给分详情页面加载，参数:', options)
     const { roomId, roomNumber } = options
     
     if (!roomId) {
@@ -68,13 +88,20 @@ Page({
       // 从房间数据中提取records字段，如果不存在则使用空数组
       const scoreRecords = roomResult.data?.records || [];
       
-      // 按时间倒序排序
-      scoreRecords.sort((a, b) => b.createTime - a.createTime);
+      // 预处理每条记录，添加格式化后的时间显示
+      const processedRecords = scoreRecords.map(record => {
+        const formattedTime = this.formatTime(record.createTime);
+        return {
+          ...record,
+          displayTime: formattedTime  // 添加预格式化的显示时间
+        };
+      });
       
-      console.log('获取到的给分记录:', scoreRecords)
+      // 按时间倒序排序
+      processedRecords.sort((a, b) => b.createTime - a.createTime);
       
       this.setData({
-        scoreRecords: scoreRecords,
+        scoreRecords: processedRecords,
         isLoading: false
       })
     } catch (error) {
@@ -85,19 +112,5 @@ Page({
       })
       this.setData({ isLoading: false })
     }
-  },
-
-  // 格式化时间
-  formatTime(time) {
-    if (!time) return ''
-    const date = new Date(time)
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const hour = String(date.getHours()).padStart(2, '0')
-    const minute = String(date.getMinutes()).padStart(2, '0')
-    const second = String(date.getSeconds()).padStart(2, '0')
-    
-    return `${year}-${month}-${day} ${hour}:${minute}:${second}`
   }
 })
