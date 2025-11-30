@@ -349,8 +349,10 @@ Page({
       
       // 生成小程序码
       this.generateQRCode().then(() => {
-        // 自动显示二维码弹窗
-        this.showQRCodeModal();
+        if (false) {
+          // 自动显示二维码弹窗
+          this.showQRCodeModal();
+        }
       });
       
       // 生成小程序码（加入房间时不自动显示弹窗）
