@@ -533,7 +533,18 @@ Page({
   onShareAppMessage() {
     return {
       title: '可乐计分器小程序',
-      path: '/pages/home/home'
+      path: '/pages/home/home',
+      imageUrl: '/images/小程序码.jpg'
+    }
+  },
+
+  /**
+   * 分享到朋友圈
+   */
+  onShareTimeline() {
+    return {
+      title: '可乐计分器小程序',
+      imageUrl: '/images/小程序码.jpg'
     }
   }
 })

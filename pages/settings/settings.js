@@ -179,7 +179,7 @@ Page({
     return {
       title: '可乐计分器小程序 - 实时同步，简单易用',
       path: '/pages/home/home',
-      imageUrl: '/images/share-banner.png'
+      imageUrl: '/images/小程序码.jpg'
     }
   },
 
@@ -189,7 +189,7 @@ Page({
   onShareTimeline() {
     return {
       title: '可乐计分器小程序 - 实时同步，简单易用',
-      imageUrl: '/images/share-banner.png'
+      imageUrl: '/images/小程序码.jpg'
     }
   }
 })

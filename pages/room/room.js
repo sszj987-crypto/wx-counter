@@ -1234,7 +1234,17 @@ Page({
     return {
       title: `房间 ${this.data.roomData?.roomNumber || this.data.roomId} - 可乐计分器`,
       path: `/pages/room/room?roomId=${this.data.roomId}`,
-      imageUrl: this.data.qrcodeUrl
+      imageUrl: '/images/小程序码.jpg'
+    };
+  },
+
+  /**
+   * 分享房间到朋友圈
+   */
+  onShareTimeline() {
+    return {
+      title: `房间 ${this.data.roomData?.roomNumber || this.data.roomId} - 可乐计分器`,
+      imageUrl: '/images/小程序码.jpg'
     };
   },
 
