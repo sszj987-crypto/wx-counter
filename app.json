@@ -7,7 +7,9 @@
     "pages/settlement/settlement",
     "pages/profile/profile",
     "pages/help/help",
-    "pages/feedback/feedback"
+    "pages/feedback/feedback",
+    "pages/ranking/ranking",
+    "pages/history/history"
   ],
   "window": {
     "navigationBarTextStyle": "black",

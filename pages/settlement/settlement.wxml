@@ -1,5 +1,5 @@
 <!--settlement.wxml-->
-<navigation-bar title="房间结算" back="{{true}}" homeButton="{{true}}" color="black" background="#FFF"></navigation-bar>
+<navigation-bar title="房间结算" back="{{false}}" homeButton="{{true}}" color="black" background="#FFF"></navigation-bar>
 
 <view class="container">
   

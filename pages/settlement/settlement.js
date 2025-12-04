@@ -12,7 +12,12 @@ Page({
   },
 
   async onLoad(options) {
-    console.log('结算页面加载，参数:', options);
+    console.log('=== 结算页面加载 ===', options);
+    
+    // 验证结算数据是否正确保存到数据库
+    setTimeout(() => {
+      this.validateSettlementData();
+    }, 2000); // 延迟2秒执行，确保房间页面的数据保存操作已完成
     
     // 检查房间是否已关闭
     if (options.roomClosed) {
@@ -245,28 +250,107 @@ Page({
   goToHome() {
     console.log('返回首页按钮被点击');
     try {
-      // 直接使用reLaunch跳转到首页，并尝试正确的首页路径
-      wx.reLaunch({
-        url: '/pages/home/home', // 根据项目结构修改为home页面
+      // 直接使用switchTab跳转到首页，避免页面堆栈问题
+      wx.switchTab({
+        url: '/pages/home/home',
         success: () => {
-          console.log('成功跳转至首页');
+          console.log('使用switchTab成功跳转至首页');
         },
         fail: (error) => {
-          console.error('跳转首页失败:', error);
-          // 如果home页面不存在，尝试index页面
+          console.error('switchTab跳转首页失败:', error);
+          // 如果switchTab失败，尝试reLaunch
           wx.reLaunch({
-            url: '/pages/index/index',
+            url: '/pages/home/home',
             success: () => {
-              console.log('使用index页面成功跳转至首页');
+              console.log('使用reLaunch成功跳转至首页');
             },
             fail: (reLaunchError) => {
-              console.error('使用index页面跳转首页也失败:', reLaunchError);
+              console.error('reLaunch跳转首页也失败:', reLaunchError);
+              // 最后尝试index页面
+              wx.reLaunch({
+                url: '/pages/index/index',
+                success: () => {
+                  console.log('使用index页面成功跳转至首页');
+                }
+              });
             }
           });
         }
       });
     } catch (e) {
       console.error('返回首页方法执行异常:', e);
+    }
+  },
+
+  /**
+   * 验证结算数据是否正确保存到数据库
+   */
+  async validateSettlementData() {
+    try {
+      console.log('=== 开始验证结算数据保存 ===');
+      
+      if (!this.data.roomId) {
+        console.log('没有房间ID，跳过数据验证');
+        return;
+      }
+      
+      // 获取当前用户openId
+      const { result: userInfoResult } = await wx.cloud.callFunction({
+        name: 'getOpenId'
+      });
+      const openId = userInfoResult.openId;
+      
+      console.log(`验证用户 ${openId} 的结算数据是否保存成功`);
+      
+      // 验证用户数据是否包含最新的结算记录
+      const userDoc = await db.collection('users').doc(openId).get();
+      const userData = userDoc.data || {};
+      
+      const historySettlements = userData.historySettlements || [];
+      console.log(`用户历史结算记录数: ${historySettlements.length}`);
+      
+      if (historySettlements.length > 0) {
+        // 检查最新记录是否是当前房间的
+        const latestRecord = historySettlements[historySettlements.length - 1];
+        console.log('最新结算记录:', {
+          roomId: latestRecord.roomId,
+          roomNumber: latestRecord.roomNumber,
+          settlementTime: latestRecord.settlementTime,
+          myScore: latestRecord.myScore,
+          myResult: latestRecord.myResult
+        });
+        
+        if (latestRecord.roomId === this.data.roomId) {
+          console.log('✅ 结算数据验证成功！最新记录匹配当前房间');
+          wx.showToast({
+            title: '数据保存成功',
+            icon: 'success',
+            duration: 1500
+          });
+        } else {
+          console.log('❌ 结算数据验证失败！最新记录不匹配当前房间');
+          wx.showToast({
+            title: '数据保存异常',
+            icon: 'error',
+            duration: 2000
+          });
+        }
+      } else {
+        console.log('❌ 结算数据验证失败！没有找到历史结算记录');
+        wx.showToast({
+          title: '数据保存失败',
+          icon: 'error',
+          duration: 2000
+        });
+      }
+      
+    } catch (error) {
+      console.error('=== 验证结算数据时出错 ===', error);
+      wx.showToast({
+        title: '数据验证失败',
+        icon: 'none',
+        duration: 2000
+      });
     }
   },
 

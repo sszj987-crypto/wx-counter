@@ -88,6 +88,23 @@ Page({
     })
   },
 
+  /**
+   * 跳转到排行榜页面
+   */
+  goToRanking() {
+    wx.navigateTo({
+      url: '/pages/ranking/ranking'
+    })
+  },
+
+  /**
+   * 跳转到历史结算页面
+   */
+  goToHistory() {
+    wx.navigateTo({
+      url: '/pages/history/history'
+    })
+  },
 
   /**
    * 跳转到建议反馈页面

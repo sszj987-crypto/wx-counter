@@ -26,6 +26,10 @@ Component({
       type: Boolean,
       value: true
     },
+    homeButton: {
+      type: Boolean,
+      value: false
+    },
     loading: {
       type: Boolean,
       value: false
@@ -105,12 +109,19 @@ Component({
       const currentPage = pages[pages.length - 1]
       const pagePath = currentPage.route
       
-      // 在结算页面时，跳转到主页而不是返回
+      // 根据不同页面类型进行不同的返回处理
       if (pagePath === 'pages/settlement/settlement') {
+        // 结算页面：跳转到主页而不是返回
+        wx.switchTab({
+          url: '/pages/home/home'
+        })
+      } else if (pagePath === 'pages/room/room') {
+        // 房间页面：如果是分享进入的，直接跳转到首页而不是返回
         wx.switchTab({
           url: '/pages/home/home'
         })
       } else if (data.delta) {
+        // 默认返回行为
         wx.navigateBack({ delta: data.delta })
       }
       

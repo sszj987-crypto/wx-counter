@@ -29,6 +29,24 @@
       <view class="menu-arrow">›</view>
     </view>
 
+    <view class="menu-item" bindtap="goToRanking">
+      <view class="menu-icon">🏆</view>
+      <view class="menu-content">
+        <view class="menu-title">排行榜</view>
+        <view class="menu-desc">查看胜率净胜分排行</view>
+      </view>
+      <view class="menu-arrow">›</view>
+    </view>
+
+    <view class="menu-item" bindtap="goToHistory">
+      <view class="menu-icon">📋</view>
+      <view class="menu-content">
+        <view class="menu-title">历史结算</view>
+        <view class="menu-desc">查看游戏结算记录</view>
+      </view>
+      <view class="menu-arrow">›</view>
+    </view>
+
     <view class="menu-item share-item" bindtap="onShareTap">
       <view class="menu-icon">📤</view>
       <view class="menu-content">

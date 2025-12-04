@@ -1,0 +1,57 @@
+<!--ranking.wxml-->
+<navigation-bar title="排行榜" back="{{true}}" color="black" background="#FFF"></navigation-bar>
+
+<view class="container">
+  <!-- 排序切换按钮 -->
+  <view class="sort-tabs">
+    <view class="sort-tab {{sortType === 'winRate' ? 'active' : ''}}" bindtap="changeSortType" data-type="winRate">
+      按胜率排序
+    </view>
+    <view class="sort-tab {{sortType === 'netScore' ? 'active' : ''}}" bindtap="changeSortType" data-type="netScore">
+      按净胜分排序
+    </view>
+  </view>
+
+  <!-- 排行榜列表 -->
+  <view class="ranking-list">
+    <view class="ranking-item {{index < 3 ? 'top-' + (index + 1) : ''}}" wx:for="{{rankingList}}" wx:key="openId">
+      <!-- 排名 -->
+      <view class="rank-number">
+        <text class="rank-text">{{index + 1}}</text>
+      </view>
+      
+      <!-- 用户信息 -->
+      <view class="user-info">
+        <image class="user-avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+        <view class="user-details">
+          <view class="user-name">{{item.nickName || '玩家'}}</view>
+          <view class="user-stats">
+            <text class="stat-item">总局数: {{item.totalGames || 0}}</text>
+            <text class="stat-item">胜: {{item.wins || 0}}</text>
+            <text class="stat-item">负: {{item.losses || 0}}</text>
+            <text class="stat-item">平: {{item.draws || 0}}</text>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 统计数据 -->
+      <view class="stats-info">
+        <block wx:if="{{sortType === 'winRate'}}">
+          <view class="stat-value win-rate">{{item.winRateDisplay}}</view>
+          <view class="stat-label">胜率</view>
+        </block>
+        <block wx:else>
+          <view class="stat-value net-score {{item.netScore >= 0 ? 'positive' : 'negative'}}">
+            {{item.netScore >= 0 ? '+' : ''}}{{item.netScore || 0}}
+          </view>
+          <view class="stat-label">净胜分</view>
+        </block>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{rankingList.length === 0}}">
+    <text class="empty-text">暂无排行榜数据</text>
+  </view>
+</view>

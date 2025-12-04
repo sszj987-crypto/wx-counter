@@ -80,15 +80,15 @@ Page({
   },
 
   /**
-   * 初始化用户信息
+   * 初始化用户信息 - 数据库优先策略
    */
   async initUserInfo() {
-    console.log('开始初始化用户信息')
+    console.log('开始初始化用户信息 - 数据库优先策略')
     const app = getApp()
     
     // 检查是否已有用户信息
-    if (app.globalData.userInfo) {
-      console.log('使用已存在的用户信息:', app.globalData.userInfo)
+    if (app.globalData.userInfo && app.globalData.userInfo.fromDatabase) {
+      console.log('使用已存在的数据库用户信息:', app.globalData.userInfo)
       this.setData({
         userInfo: app.globalData.userInfo,
         hasUserInfo: true
@@ -96,12 +96,14 @@ Page({
       return
     }
 
-    // 先从数据库获取用户信息
+    // 先从数据库获取用户信息，数据库优先策略
     try {
-      console.log('尝试从数据库获取用户信息')
+      console.log('优先从数据库获取用户信息')
       const dbUserInfo = await this.getUserInfoFromDB()
       if (dbUserInfo) {
-        console.log('从数据库获取到用户信息:', dbUserInfo)
+        console.log('从数据库获取到用户信息，使用数据库记录（优先级最高）:', dbUserInfo)
+        // 标记信息来源为数据库，后续不再覆盖
+        dbUserInfo.fromDatabase = true
         app.globalData.userInfo = dbUserInfo
         this.setData({
           userInfo: dbUserInfo,
@@ -113,21 +115,39 @@ Page({
       console.log('从数据库获取用户信息失败:', error)
     }
 
-    // 如果数据库中没有用户信息，尝试获取微信用户信息
+    // 数据库中没有用户信息，才获取微信用户信息并保存到数据库
     try {
-      console.log('尝试获取微信用户信息')
-      const userInfo = await this.getWxUserInfo()
-      console.log('获取到微信用户信息:', userInfo)
-      app.globalData.userInfo = userInfo
-      this.setData({
-        userInfo: userInfo,
-        hasUserInfo: true
-      })
+      console.log('数据库中无用户信息，获取微信用户信息并保存到数据库')
+      const wxUserInfo = await this.getWxUserInfo()
+      console.log('获取到微信用户信息:', wxUserInfo)
+      
+      // 保存到数据库
+      const savedUserInfo = await this.saveUserInfoToDB(wxUserInfo)
+      if (savedUserInfo) {
+        console.log('微信用户信息已保存到数据库:', savedUserInfo)
+        // 标记信息来源为数据库
+        savedUserInfo.fromDatabase = true
+        app.globalData.userInfo = savedUserInfo
+        this.setData({
+          userInfo: savedUserInfo,
+          hasUserInfo: true
+        })
+      } else {
+        console.log('保存到数据库失败，使用微信用户信息（临时）:', wxUserInfo)
+        // 如果保存失败，使用临时用户信息（标记为非数据库来源）
+        wxUserInfo.fromDatabase = false
+        app.globalData.userInfo = wxUserInfo
+        this.setData({
+          userInfo: wxUserInfo,
+          hasUserInfo: true
+        })
+      }
     } catch (error) {
       console.error('获取用户信息失败:', error)
-      // 使用默认用户信息
+      // 使用默认用户信息（标记为非数据库来源）
       const defaultUserInfo = this.generateDefaultUserInfo()
-      console.log('使用默认用户信息:', defaultUserInfo)
+      defaultUserInfo.fromDatabase = false
+      console.log('使用默认用户信息（临时）:', defaultUserInfo)
       app.globalData.userInfo = defaultUserInfo
       this.setData({
         userInfo: defaultUserInfo,
@@ -137,7 +157,7 @@ Page({
   },
 
   /**
-   * 检查用户信息并在必要时提示设置
+   * 检查用户信息并在必要时提示设置 - 数据库优先策略
    */
   async checkAndPromptForUserInfo() {
     try {
@@ -145,10 +165,20 @@ Page({
       const userInfo = app.globalData.userInfo
       
       // 检查用户信息是否存在且不是默认值
+      // 注意：只有当用户信息不是来自数据库，且为默认值时才提示
       if (!userInfo || 
-          userInfo.nickName === '玩家' || 
-          (userInfo.nickName && userInfo.nickName.startsWith('玩家') && /^\d+$/.test(userInfo.nickName.substring(2)))) {
-        console.log('用户信息不存在或使用默认用户名，提示用户设置')
+          (!userInfo.fromDatabase && (
+            userInfo.nickName === '玩家' || 
+            (userInfo.nickName && userInfo.nickName.startsWith('玩家') && /^\d+$/.test(userInfo.nickName.substring(2)))
+          ))) {
+        
+        // 如果用户信息来自数据库，说明之前已经保存过，无需提示
+        if (userInfo && userInfo.fromDatabase) {
+          console.log('用户信息来自数据库，已保存，无需提示设置')
+          return
+        }
+        
+        console.log('用户信息不存在或使用默认用户名（临时），提示用户设置')
         
         // 显示弹框询问是否需要设置用户名
         wx.showModal({
@@ -169,7 +199,7 @@ Page({
           }
         })
       } else {
-        console.log('用户信息已设置，无需提示')
+        console.log('用户信息已设置且来自数据库，无需提示')
       }
     } catch (error) {
       console.error('检查用户信息时出错:', error)
@@ -235,6 +265,67 @@ Page({
         }
       })
     })
+  },
+
+  /**
+   * 保存用户信息到数据库
+   */
+  async saveUserInfoToDB(userInfo) {
+    try {
+      console.log('开始保存用户信息到数据库:', userInfo)
+      
+      // 获取当前用户openId
+      const app = getApp();
+      const cacheManager = app.globalData.cacheManager;
+      let openId = cacheManager.getOpenId();
+      
+      if (!openId) {
+        // 缓存中没有openid，调用云函数获取
+        const { result: userInfoResult } = await wx.cloud.callFunction({
+          name: 'getOpenId'
+        })
+        openId = userInfoResult.openId
+        // 将openid存入缓存
+        cacheManager.setOpenId(openId);
+        console.log('通过云函数获取用户openId:', openId)
+      } else {
+        console.log('使用缓存的用户openId:', openId)
+      }
+
+      // 准备用户数据
+      const userData = {
+        _id: openId, // 使用openId作为文档ID
+        nickName: userInfo.nickName || '玩家',
+        avatarUrl: userInfo.avatarUrl || '/images/default-avatar.png',
+        totalGames: 0,
+        totalScore: 0,
+        winRate: 0,
+        createTime: new Date(),
+        updateTime: new Date(),
+        lastLoginTime: new Date(),
+        _openid: openId // 云开发需要这个字段
+      }
+
+      console.log('准备保存到数据库的用户数据:', userData)
+
+      // 保存到数据库
+      const db = wx.cloud.database()
+      const result = await db.collection('users').add({
+        data: userData
+      })
+
+      console.log('用户信息保存成功，记录ID:', result._id)
+      
+      // 返回保存的数据（包含从数据库获取的完整信息）
+      return {
+        nickName: userData.nickName,
+        avatarUrl: userData.avatarUrl,
+        fromDatabase: true
+      }
+    } catch (error) {
+      console.error('保存用户信息到数据库失败:', error)
+      return null
+    }
   },
 
   /**

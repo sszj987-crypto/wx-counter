@@ -1396,8 +1396,8 @@ Page({
         mask: true
       });
 
-      // 结算数据已包含在房间记录中，无需单独保存到records集合
-      console.log('结算数据将保存在房间记录中');
+      // 记录游戏结算数据到用户个人数据
+      await this.recordGameResults(settlementData);
       
       // 2. 隐藏结算弹窗
       this.hideSettlementModal();
@@ -1476,6 +1476,203 @@ Page({
       url: '/pages/home/home'
     });
     return true; // 阻止默认返回行为
+  },
+
+  /**
+   * 记录游戏结算数据到所有参与者个人数据
+   */
+  async recordGameResults(settlementData) {
+    try {
+      console.log('=== 开始记录游戏结算数据 ===', {
+        roomId: settlementData.roomId,
+        roomNumber: settlementData.roomNumber,
+        players: settlementData.players.map(p => ({ nickName: p.nickName, score: p.score })),
+        rate: settlementData.rate,
+        settlementTime: settlementData.settlementTime
+      });
+      
+      const db = wx.cloud.database();
+      
+      // 验证数据库连接
+      console.log('数据库连接验证:', !!db);
+      
+      // 处理每个玩家的结算数据
+      const playerResults = settlementData.players.map(player => {
+        const finalScore = (player.score || 0) * settlementData.rate;
+        let result = '平局';
+        if (finalScore > 0) {
+          result = '胜利';
+        } else if (finalScore < 0) {
+          result = '失败';
+        }
+        
+        return {
+          openId: player.openId,
+          nickName: player.nickName || '玩家',
+          score: player.score || 0,
+          finalScore: finalScore,
+          result: result
+        };
+      });
+      
+      // 为每个参与者更新数据
+      for (const playerResult of playerResults) {
+        console.log(`\n--- 开始处理玩家: ${playerResult.nickName} (${playerResult.openId}) ---`);
+        try {
+          // 获取同房间其他玩家的openid（排除当前玩家）
+          const gamemates = playerResults
+            .filter(p => p.openId !== playerResult.openId)
+            .map(p => ({
+              openId: p.openId,
+              gameCount: 1 // 新增对局计数字段
+            }));
+          
+          // 获取用户当前数据
+          console.log(`获取用户数据: ${playerResult.openId}`);
+          let currentUserData = {};
+          try {
+            const userDoc = await db.collection('users').doc(playerResult.openId).get();
+            currentUserData = userDoc.data || {};
+            console.log(`用户数据获取成功，当前数据:`, {
+              totalGames: currentUserData.totalGames || 0,
+              totalScore: currentUserData.totalScore || 0,
+              winRate: currentUserData.winRate || 0
+            });
+          } catch (userError) {
+            console.log(`用户 ${playerResult.nickName} (${playerResult.openId}) 不存在，创建新用户记录`);
+            
+            // 如果用户不存在，创建新的用户记录
+            const newUserData = {
+              _id: playerResult.openId,
+              openId: playerResult.openId,
+              nickName: playerResult.nickName || '玩家',
+              avatarUrl: '', // 可以后续从其他地方获取
+              totalGames: 0,
+              totalScore: 0,
+              wins: 0,
+              losses: 0,
+              draws: 0,
+              winRate: 0,
+              netScore: 0,
+              gamemate: [],
+              historySettlements: [],
+              lastActiveTime: new Date(),
+              createdAt: new Date(),
+              fromDatabase: true // 标记为来自数据库
+            };
+            
+            // 创建用户记录
+            try {
+              await db.collection('users').add({
+                data: newUserData
+              });
+              console.log(`新用户记录创建成功: ${playerResult.nickName} (${playerResult.openId})`);
+            } catch (createError) {
+              console.error(`创建用户记录失败:`, createError);
+              // 跳过这个用户，继续处理其他玩家
+              continue;
+            }
+            
+            // 重新获取用户数据
+            currentUserData = newUserData;
+          }
+          
+          // 计算更新后的数据
+          const totalGames = (currentUserData.totalGames || 0) + 1;
+          const totalScore = (currentUserData.totalScore || 0) + playerResult.finalScore;
+          
+          // 统计胜负平数据
+          const wins = (currentUserData.wins || 0) + (playerResult.result === '胜利' ? 1 : 0);
+          const losses = (currentUserData.losses || 0) + (playerResult.result === '失败' ? 1 : 0);
+          const draws = (currentUserData.draws || 0) + (playerResult.result === '平局' ? 1 : 0);
+          const winRate = wins / totalGames;
+          
+          // 处理gamemate数据，合并对局计数
+          const currentGamemates = currentUserData.gamemate || [];
+          const updatedGamemates = [...currentGamemates];
+          
+          // 更新或添加gamemate信息
+          for (const gamemate of gamemates) {
+            const existingIndex = updatedGamemates.findIndex(g => g.openId === gamemate.openId);
+            if (existingIndex >= 0) {
+              // 已存在，增加对局计数
+              updatedGamemates[existingIndex].gameCount = 
+                (updatedGamemates[existingIndex].gameCount || 0) + gamemate.gameCount;
+            } else {
+              // 不存在，添加新记录
+              updatedGamemates.push(gamemate);
+            }
+          }
+          
+          // 创建精简的历史结算记录（只记录当前用户信息）
+          const settlementRecord = {
+            totalGames: 1, // 总局数
+            roomId: settlementData.roomId,
+            roomNumber: settlementData.roomNumber,
+            settlementTime: settlementData.settlementTime,
+            rate: settlementData.rate,
+            // 当前用户的得分信息
+            myScore: playerResult.score || 0,
+            myFinalScore: playerResult.finalScore,
+            myResult: playerResult.result,
+            // 同局人信息
+            gamemates: playerResults
+              .filter(p => p.openId !== playerResult.openId)
+              .map(p => ({
+                nickName: p.nickName,
+                score: p.score || 0,
+                result: p.result,
+                finalScore: p.finalScore
+              }))
+          };
+          
+          // 更新用户数据
+          console.log(`准备更新用户数据:`, {
+            totalGames, totalScore, wins, losses, draws, winRate,
+            historyRecordCount: (currentUserData.historySettlements || []).length,
+            updatedGamematesCount: updatedGamemates.length
+          });
+          
+          const updateResult = await db.collection('users').doc(playerResult.openId).update({
+            data: {
+              totalGames: totalGames,
+              totalScore: totalScore,
+              wins: wins,
+              losses: losses,
+              draws: draws,
+              winRate: winRate,
+              netScore: totalScore, // 净胜分等于总得分
+              gamemate: updatedGamemates, // 更新gamemate数组（包含对局计数）
+              historySettlements: db.command.push(settlementRecord), // 添加历史结算记录
+              lastActiveTime: new Date()
+            }
+          });
+          
+          console.log(`用户数据更新成功:`, updateResult);
+          
+          console.log(`用户 ${playerResult.nickName} (${playerResult.openId}) 结算数据更新成功`, {
+            totalGames, totalScore, wins, losses, draws, winRate
+          });
+          
+        } catch (playerError) {
+          console.error(`=== 更新玩家 ${playerResult.nickName} (${playerResult.openId}) 数据失败 ===`, {
+            error: playerError,
+            stack: playerError.stack || 'no stack info',
+            code: playerError.code || 'unknown code',
+            message: playerError.message || 'unknown message'
+          });
+          // 继续处理其他玩家，不中断流程
+        } finally {
+          console.log(`--- 玩家 ${playerResult.nickName} 处理完成 ---`);
+        }
+      }
+      
+      console.log('=== 所有参与者结算数据记录完成 ===');
+      
+    } catch (error) {
+      console.error('记录游戏结算数据失败:', error);
+      // 不影响主流程，只记录错误
+    }
   },
 
   /**

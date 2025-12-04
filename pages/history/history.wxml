@@ -1,0 +1,102 @@
+<!--history.wxml-->
+<navigation-bar title="历史结算" back="{{true}}" color="black" background="#FFF"></navigation-bar>
+
+<view class="container">
+  <!-- 统计概览 -->
+  <view class="stats-overview" wx:if="{{stats.initialized}}">
+    <view class="stat-card">
+      <view class="stat-number">{{stats.totalGames}}</view>
+      <view class="stat-label">总局数</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-number">{{stats.wins}}</view>
+      <view class="stat-label">胜利</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-number">{{stats.losses}}</view>
+      <view class="stat-label">失败</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-number">{{stats.winRate}}</view>
+      <view class="stat-label">胜率</view>
+    </view>
+  </view>
+
+  <!-- 历史记录列表 -->
+  <view class="history-list">
+    <view class="history-item" wx:for="{{historySettlements}}" wx:key="index">
+      <!-- 精简的记录行 -->
+      <view class="record-row" bindtap="toggleRecordDetail" data-index="{{index}}">
+        <!-- 对局时间 -->
+        <view class="game-time">
+          {{item.formattedTime}}
+        </view>
+        
+        <!-- 房间号 -->
+        <view class="room-id">
+          房间{{item.roomNumber || '未知'}}
+        </view>
+        
+        <!-- 当前用户的输赢 -->
+        <view class="my-result">
+          <text class="result-text {{item.myResult === '胜利' ? 'win' : item.myResult === '失败' ? 'lose' : 'draw'}}">
+            {{item.myResult}}
+          </text>
+        </view>
+        
+        <!-- 当前用户的得分 -->
+        <view class="my-score">
+          <text class="score-text {{item.myScore >= 0 ? 'positive' : 'negative'}}">
+            {{item.myScore >= 0 ? '+' : ''}}{{item.myScore || 0}}
+          </text>
+        </view>
+        
+        <!-- 详细信息按钮 -->
+        <view class="detail-toggle">
+          <text class="toggle-icon {{item.expanded ? 'expanded' : ''}}">▼</text>
+        </view>
+      </view>
+
+      <!-- 展开的同局人信息 -->
+      <view class="detail-section {{item.expanded ? 'show' : 'hide'}}">
+        <view class="teammates-list">
+          <view class="teammate-item" wx:for="{{item.gamemates}}" wx:key="index" wx:for-item="teammate" wx:for-index="teammateIndex">
+            <!-- 玩家姓名（占两列空间：时间+房间号） -->
+            <view class="teammate-name">{{teammate.nickName || '玩家'}}</view>
+            
+            <!-- 空的占位列（为了对齐） -->
+            <view class="empty-column"></view>
+            
+            <!-- 玩家胜负 -->
+            <view class="teammate-result-col">
+              <text class="teammate-result {{teammate.result === '胜利' ? 'win' : teammate.result === '失败' ? 'lose' : 'draw'}}">
+                {{teammate.result}}
+              </text>
+            </view>
+            
+            <!-- 玩家得分 -->
+            <view class="teammate-score-col">
+              <text class="teammate-score {{teammate.finalScore >= 0 ? 'positive' : 'negative'}}">
+                {{teammate.finalScore >= 0 ? '+' : ''}}{{teammate.finalScore || 0}}
+              </text>
+            </view>
+            
+            <!-- 空的占位列（为了对齐detail-toggle） -->
+            <view class="empty-column"></view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{historySettlements.length === 0 && !loading}}">
+    <text class="empty-text">暂无历史结算记录</text>
+    <text class="empty-subtitle">开始游戏后，这里将显示您的历史结算数据</text>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+</view>

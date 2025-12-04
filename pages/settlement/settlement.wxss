@@ -1,24 +1,24 @@
 /* settlement.wxss */
-
-/* 主容器样式 */
-.container {
-  padding: 20rpx;
-  padding-top: calc(env(safe-area-inset-top) + 20rpx); /* 添加顶部安全区域避让 */
-  box-sizing: border-box;
+page {
   min-height: 100vh;
-  background-color: #f8f8f8;
   display: flex;
   flex-direction: column;
-  padding-bottom: env(safe-area-inset-bottom) || 20rpx;
+  background-color: #f8f9fa;
+}
+
+.container {
+  flex: 1;
+  padding: 40rpx;
+  box-sizing: border-box;
 }
 
 /* 房间信息样式 */
 .room-info {
-  background-color: #ffffff;
-  padding: 30rpx;
+  background-color: white;
   border-radius: 12rpx;
+  padding: 30rpx 20rpx;
   margin-bottom: 20rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -50,10 +50,10 @@
 
 /* 结算部分样式 */
 .settlement-section {
-  background-color: #ffffff;
+  background-color: white;
   border-radius: 12rpx;
-  padding: 30rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+  padding: 30rpx 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
   flex: 1;
 }
 
