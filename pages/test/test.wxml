@@ -1,0 +1,12 @@
+<!-- test.wxml -->
+<view class="test-container">
+  <view class="test-title">测试页面</view>
+  <view class="test-item">
+    <text class="test-label">胜负：</text>
+    <text class="test-value result-text">{{testResult}}</text>
+  </view>
+  <view class="test-item">
+    <text class="test-label">得分：</text>
+    <text class="test-value score-text">{{testScore}}</text>
+  </view>
+</view>

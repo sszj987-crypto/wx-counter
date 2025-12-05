@@ -1,6 +1,6 @@
 /* history.wxss */
 page {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   background-color: #f8f9fa;
@@ -8,453 +8,178 @@ page {
 
 .container {
   flex: 1;
-  padding: 40rpx;
-  box-sizing: border-box;
-}
-
-/* 统计概览 */
-.stats-overview {
   display: flex;
-  background-color: white;
-  border-radius: 12rpx;
-  padding: 30rpx 20rpx;
-  margin-bottom: 20rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+  flex-direction: column;
+  padding: 20rpx;
 }
 
-.stat-card {
-  flex: 1;
-  text-align: center;
-  border-right: 1rpx solid #f0f0f0;
+/* 主内容区 */
+.main-content {
+  padding: 20rpx;
 }
 
-.stat-card:last-child {
-  border-right: none;
-}
-
-.stat-number {
+.page-title {
   font-size: 36rpx;
   font-weight: bold;
+  text-align: center;
+  margin-bottom: 20rpx;
   color: #333;
-  margin-bottom: 8rpx;
+}
+
+.stats-container {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 20rpx;
+  padding: 20rpx;
+  background-color: #f5f5f5;
+  border-radius: 10rpx;
+}
+
+.stat-item {
+  text-align: center;
 }
 
 .stat-label {
   font-size: 24rpx;
   color: #666;
+  display: block;
+  margin-bottom: 5rpx;
 }
 
-/* 历史记录列表 */
+.stat-value {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #000;
+  display: block;
+}
+
 .history-list {
-  background-color: white;
-  border-radius: 12rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 10rpx;
   overflow: hidden;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.1);
+}
+
+.history-header {
+  display: flex;
+  background-color: #e0e0e0;
+  font-weight: bold;
+}
+
+.header-item {
+  flex: 1;
+  padding: 20rpx;
+  text-align: center;
+  font-size: 24rpx;
+  color: #333;
 }
 
 .history-item {
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid #ddd;
 }
 
-.history-item:last-child {
-  border-bottom: none;
-}
-
-/* 主记录行布局 */
 .record-row {
   display: flex;
-  align-items: stretch;
-  justify-content: space-between;
-  padding: 0 24rpx;
-  background-color: white;
-  border-bottom: 1rpx solid #f0f0f0;
-  cursor: pointer;
-  height: 80rpx; /* 固定行高 */
-  box-sizing: border-box; /* 确保高度计算包含内边距 */
-}
-
-.record-row > view {
-  display: flex;
   align-items: center;
-  justify-content: center;
-  height: 100%;
-  overflow: hidden;
+  height: 80rpx;
+  background-color: #fff;
 }
 
-/* 为每个列设置均匀的宽度比例 */
-.game-time, .room-id, .my-result, .my-score {
+.game-time, .room-id, .my-result, .my-score, .detail-toggle {
   flex: 1;
-  min-width: 0; /* 允许内容收缩 */
+  text-align: center;
+  padding: 0 10rpx;
 }
 
-.record-row:active {
-  background-color: #f5f5f5;
-}
-
-/* 对局时间 */
-.game-time {
-  font-size: 28rpx;
+.game-time text, .room-id text {
   color: #333;
-  font-weight: 500;
-  line-height: 36rpx;
-  display: flex;
-  align-items: center;
-  margin: 0;
-  padding: 0 0 0 8rpx;
-  height: 80rpx;
-  overflow: hidden;
+  font-size: 24rpx;
+  display: inline-block;
+  line-height: 1;
+  vertical-align: middle;
 }
 
-/* 房间号 */
-.room-id {
-  font-size: 28rpx;
-  color: #333;
-  font-weight: 500;
-  line-height: 36rpx;
-  display: flex;
-  align-items: center;
-  margin: 0;
-  padding: 0;
-  height: 80rpx;
-  overflow: hidden;
+.result-text {
+  font-weight: bold;
+  font-size: 24rpx;
+  display: inline-block;
+  line-height: 1;
+  vertical-align: middle;
+  padding: 5rpx 10rpx;
+  border-radius: 5rpx;
+  background-color: #4CAF50;
+  color: white;
 }
 
-/* 当前用户的胜负和得分 */
-.my-result, .my-score {
-  font-size: 28rpx;
-  color: #333;
-  font-weight: 500;
-  line-height: 36rpx;
-  display: flex;
-  align-items: center;
-  margin: 0;
-  padding: 0;
-  height: 80rpx;
-  overflow: hidden;
-}
-
-.my-result .result-text,
-.my-score .score-text {
-  background: none !important;
-  padding: 0 !important;
-  border: none !important;
-  margin: 0 !important;
-  white-space: nowrap;
-}
-
-.my-result .result-text.win {
-  color: #27ae60; /* 胜利 - 绿色 */
-  background: none !important;
-}
-
-.my-result .result-text.lose {
-  color: #e74c3c; /* 失败 - 红色 */
-  background: none !important;
-}
-
-.my-result .result-text.draw {
-  color: #95a5a6;
-  background: none !important;
-}
-
-.my-score .score-text {
-  background: none !important;
-  padding: 0 !important;
-  border: none !important;
-  margin: 0 !important;
-  white-space: nowrap;
-}
-
-.my-score .score-text.positive {
-  color: #27ae60; /* 正分 - 绿色 */
-}
-
-.my-score .score-text.negative {
-  color: #e74c3c; /* 负分 - 红色 */
-}
-
-.detail-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 80rpx;
-  padding: 0;
-  margin: 0;
+.score-text {
+  font-weight: bold;
+  font-size: 24rpx;
+  display: inline-block;
+  line-height: 1;
+  vertical-align: middle;
+  padding: 5rpx 10rpx;
+  border-radius: 5rpx;
+  background-color: #FFC107;
+  color: black;
 }
 
 .toggle-icon {
   font-size: 20rpx;
-  color: #999;
-  transition: transform 0.3s ease;
-  line-height: 36rpx;
-  vertical-align: middle;
+  color: #666;
 }
 
-.toggle-icon.expanded {
-  transform: rotate(180deg);
+.record-details {
+  background-color: #f9f9f9;
+  padding: 20rpx;
 }
 
-/* 展开的详情区域 */
-.detail-section {
-  overflow: hidden;
-  transition: max-height 0.3s ease, padding 0.3s ease;
-  background-color: #f8f9fa;
+.detail-header {
+  font-weight: bold;
+  margin-bottom: 10rpx;
+  color: #333;
 }
 
-.detail-section.hide {
-  max-height: 0;
-  padding: 0 24rpx;
-}
-
-.detail-section.show {
-  max-height: 500rpx;
-  padding: 20rpx 24rpx;
-}
-
-.teammates-list {
+.player-list {
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
-}
-
-.teammate-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12rpx 16rpx;
-  background-color: white;
-  border-radius: 8rpx;
-  box-shadow: 0 1rpx 3rpx rgba(0, 0, 0, 0.1);
-}
-
-/* 设置每个列的宽度比例 */
-.teammate-name {
-  flex: 2; /* 占两列空间：时间+房间号 */
-  font-size: 26rpx;
-  font-weight: bold;
-  color: #333;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.empty-column {
-  flex: 1;
-}
-
-.teammate-result-col, .teammate-score-col {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.teammate-info {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-}
-
-.teammate-result {
-  font-size: 28rpx;
-  font-weight: 500;
-  text-align: center;
-  background: none !important;
-  padding: 0 !important;
-  border: none !important;
-  line-height: 36rpx;
-  white-space: nowrap;
-}
-
-.teammate-result {
-  color: #333; /* 默认颜色 */
-}
-
-.teammate-result.win {
-  color: #27ae60; /* 胜利 - 绿色 */
-}
-
-.teammate-result.lose {
-  color: #e74c3c; /* 失败 - 红色 */
-}
-
-.teammate-result.draw {
-  color: #95a5a6;
-}
-
-.teammate-score {
-  font-size: 28rpx;
-  font-weight: 500;
-  text-align: center;
-  background: none !important;
-  padding: 0 !important;
-  border: none !important;
-  line-height: 36rpx;
-  white-space: nowrap;
-}
-
-.teammate-score.positive {
-  color: #27ae60; /* 正分 - 绿色 */
-}
-
-.teammate-score.negative {
-  color: #e74c3c; /* 负分 - 红色 */
-}
-
-/* 玩家信息 */
-.players-info {
-  margin-bottom: 20rpx;
+  gap: 15rpx;
 }
 
 .player-item {
   display: flex;
   align-items: center;
-  padding: 16rpx 0;
-  border-bottom: 1rpx solid #f8f8f8;
+  justify-content: space-between;
+  padding: 10rpx 20rpx;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.player-item:last-child {
-  border-bottom: none;
+.player-info {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
 }
 
 .player-avatar {
-  width: 60rpx;
-  height: 60rpx;
+  width: 40rpx;
+  height: 40rpx;
   border-radius: 50%;
-  margin-right: 16rpx;
-  border: 2rpx solid #ddd;
 }
 
-.player-details {
+.player-nickname {
+  color: #333;
+  font-size: 24rpx;
   flex: 1;
 }
 
-.player-name {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 4rpx;
-}
-
 .player-score {
-  font-size: 24rpx;
-  color: #666;
-}
-
-.player-score .positive {
-  color: #27ae60; /* 正分 - 绿色 */
-  font-weight: bold;
-}
-
-.player-score .negative {
-  color: #e74c3c; /* 负分 - 红色 */
-  font-weight: bold;
-}
-
-.player-result {
-  margin-left: 16rpx;
-}
-
-.result-badge {
-  padding: 8rpx 16rpx;
-  border-radius: 20rpx;
+  color: #333;
   font-size: 24rpx;
   font-weight: bold;
-  /* 完全去除背景色 */
-  background: none !important;
 }
 
-.result-badge.win {
-  color: #27ae60; /* 胜利 - 绿色 */
-}
-
-.result-badge.lose {
-  color: #e74c3c; /* 失败 - 红色 */
-}
-
-.result-badge.draw {
-  color: #95a5a6;
-}
-
-/* 删除冲突的旧样式 */
-
-.my-result-title {
-  font-size: 26rpx;
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 12rpx;
-  text-align: center;
-}
-
-.my-result-content {
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-}
-
-.result-text {
-  font-size: 32rpx;
-  font-weight: bold;
-  padding: 8rpx 16rpx;
-  border-radius: 20rpx;
-  background-color: rgba(255, 255, 255, 0.2);
-  color: white;
-}
-
-.result-text.win {
-  background-color: rgba(255, 107, 107, 0.8);
-}
-
-.result-text.lose {
-  background-color: rgba(78, 205, 196, 0.8);
-}
-
-.result-text.draw {
-  background-color: rgba(149, 165, 166, 0.8);
-}
-
-.score-text {
-  font-size: 32rpx;
-  font-weight: bold;
-}
-
-.score-text.positive {
-  color: #ffcccc;
-}
-
-.score-text.negative {
-  color: #ccffff;
-}
-
-.net-score-text {
-  font-size: 26rpx;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-/* 空状态 */
 .empty-state {
   text-align: center;
-  padding: 100rpx 40rpx;
+  padding: 100rpx 0;
   color: #999;
-}
-
-.empty-text {
-  font-size: 32rpx;
-  font-weight: bold;
-  margin-bottom: 20rpx;
-}
-
-.empty-subtitle {
-  font-size: 26rpx;
-  line-height: 1.5;
-}
-
-/* 加载状态 */
-.loading-state {
-  text-align: center;
-  padding: 60rpx 20rpx;
-  color: #999;
-}
-
-.loading-text {
   font-size: 28rpx;
 }

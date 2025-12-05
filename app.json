@@ -9,7 +9,8 @@
     "pages/help/help",
     "pages/feedback/feedback",
     "pages/ranking/ranking",
-    "pages/history/history"
+    "pages/history/history",
+    "pages/test/test"
   ],
   "window": {
     "navigationBarTextStyle": "black",
