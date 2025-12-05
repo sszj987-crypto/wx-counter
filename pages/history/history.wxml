@@ -27,7 +27,7 @@
   <!-- 历史记录列表 -->
   <!-- 表头（固定显示，不滚动） -->
   <view class="history-header">
-    <view class="header-item">时间</view>
+    <view class="header-item time-header">时间</view>
     <view class="header-item">房间号</view>
     <view class="header-item">结果</view>
     <view class="header-item">得分</view>

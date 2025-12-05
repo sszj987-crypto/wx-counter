@@ -68,10 +68,16 @@ page {
 
 .header-item {
   flex: 1;
-  padding: 20rpx;
+  padding: 20rpx 15rpx; /* 减少内边距增加可用空间 */
   text-align: center;
   font-size: 24rpx;
   color: #333;
+  box-sizing: border-box; /* 确保padding计入总宽度 */
+}
+
+.header-item.time-header {
+  flex: 1.8; /* 稍微增加时间列的宽度 */
+  padding: 20rpx 15rpx;
 }
 
 .history-item {
@@ -85,10 +91,18 @@ page {
   background-color: #fff;
 }
 
-.game-time, .room-id, .my-result, .my-score, .detail-toggle {
+.game-time {
+  flex: 1.8; /* 增加时间列的宽度，与表头对齐 */
+  text-align: center;
+  padding: 0 15rpx; /* 与表头一致的内外边距 */
+  box-sizing: border-box;
+}
+
+.room-id, .my-result, .my-score, .detail-toggle {
   flex: 1;
   text-align: center;
-  padding: 0 10rpx;
+  padding: 0 15rpx; /* 与表头一致的内外边距 */
+  box-sizing: border-box;
 }
 
 .game-time text {

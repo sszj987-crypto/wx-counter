@@ -271,16 +271,20 @@ Page({
   /**
    * 清理结算锁定
    * @param {string} roomId 房间ID
+   * 注意：此方法只清理锁定相关字段，不会修改房间的status状态
+   * 房间的最终状态应该在finalizeSettlement方法中统一处理
    */
   async clearSettlementLock(roomId) {
     try {
       console.log('清理房间结算锁定:', roomId);
       
+      // 只清理锁定相关字段，不修改房间状态
       await db.collection('rooms').doc(roomId).update({
         data: {
           settlementLockTime: null,
-          settlementLocker: null,
-          status: 'active' // 恢复到活跃状态
+          settlementLocker: null
+          // 注意：这里不设置status字段，避免意外改变房间状态
+          // 结算完成后房间应该保持inactive状态，不应该重新激活
         }
       });
       
@@ -603,19 +607,19 @@ Page({
     try {
       console.log('开始完成结算流程:', roomId);
       
-      // 更新房间状态为已结算
+      // 更新房间状态为已结算，并清理可能存在的pending_settlement状态
       await db.collection('rooms').doc(roomId).update({
         data: {
-          status: 'inactive',
+          status: 'inactive', // 确保房间状态为inactive，而不是pending_settlement
           closeTime: new Date(),
           settlementCompleted: true,
           settlementCompletedAt: new Date(),
-          settlementCompletedBy: await this.getCurrentUserOpenId()
+          settlementCompletedBy: await this.getCurrentUserOpenId(),
+          // 确保清理可能存在的pending_settlement状态
+          settlementLockTime: null,
+          settlementLocker: null
         }
       });
-      
-      // 清理结算锁定
-      await this.clearSettlementLock(roomId);
       
       console.log('结算流程完成:', roomId);
     } catch (error) {
