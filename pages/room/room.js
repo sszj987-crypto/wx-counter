@@ -1402,15 +1402,16 @@ Page({
       // 2. 隐藏结算弹窗
       this.hideSettlementModal();
       
-      // 3. 结算核心操作：先将房间状态更新为closed，然后删除记录
+      // 3. 结算核心操作：将房间状态更新为inactive，并添加结算时间标记
       try {
-        // 添加结算时间标记（不更新status字段）
       await db.collection('rooms').doc(this.data.roomId).update({
         data: {
-          closeTime: new Date()
+          closeTime: new Date(),
+          status: 'inactive', // 将房间状态设置为inactive，通知所有用户跳转到结算页面
+          settlementTime: new Date() // 添加结算时间标记
         }
       });
-      console.log('房间已标记结算时间');
+      console.log('房间状态已更新为inactive并标记结算时间');
       } catch (roomError) {
         console.error('处理房间状态失败:', roomError);
         // 继续执行后续操作，不影响结算流程
@@ -1518,6 +1519,15 @@ Page({
       // 为每个参与者更新数据
       for (const playerResult of playerResults) {
         console.log(`\n--- 开始处理玩家: ${playerResult.nickName} (${playerResult.openId}) ---`);
+        
+        // 检查是否为茶水玩家（茶水玩家不需要创建或更新用户记录）
+        const isTeaServicePlayer = playerResult.nickName === '台位/茶水' || playerResult.openId.startsWith('tea_service_');
+        
+        if (isTeaServicePlayer) {
+          console.log(`跳过茶水玩家 ${playerResult.nickName} 的用户记录操作`);
+          continue; // 跳过茶水玩家，处理下一个玩家
+        }
+        
         try {
           // 获取同房间其他玩家的openid（排除当前玩家）
           const gamemates = playerResults
@@ -1649,6 +1659,7 @@ Page({
           
           // 创建gamedata记录，包含完整的游戏结算信息和个人统计数据
           const gameDataRecord = {
+            gameId: settlementData.roomId, // 添加gameId字段，用于结算数据验证
             roomNumber: settlementData.roomNumber,
             endTime: settlementData.settlementTime,
             rate: settlementData.rate,
