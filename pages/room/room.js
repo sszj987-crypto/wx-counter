@@ -596,9 +596,57 @@ Page({
       }, 100);
     } catch (error) {
       console.error('加入房间失败:', error);
+      
+      // 检查是否是因为房间状态为inactive导致的错误
+      if (error.errMsg && (error.errMsg.includes('permission denied') || error.errMsg.includes('文档不存在'))) {
+        // 房间可能已结算，再次尝试获取房间信息
+        try {
+          const inactiveRoomResult = await wx.cloud.database().collection('rooms').doc(roomId).get();
+          if (inactiveRoomResult.data && inactiveRoomResult.data.status === 'inactive') {
+            console.log('检测到房间已结算，跳转到结算页面');
+            // 房间已结算，跳转到结算页面
+            wx.redirectTo({
+              url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
+                roomId: inactiveRoomResult.data._id,
+                roomNumber: inactiveRoomResult.data.roomNumber,
+                players: inactiveRoomResult.data.players,
+                rate: 1 // 默认倍率
+              }))}`
+            });
+            return;
+          }
+        } catch (checkError) {
+          console.log('检查房间状态失败:', checkError);
+        }
+      }
+      
+      // 检查是否是因为房间不存在导致的错误
+      if (error.message && (error.message.includes('房间不存在') || error.message.includes('文档不存在'))) {
+        wx.showToast({
+          title: '房间不存在或已删除',
+          icon: 'none'
+        });
+        setTimeout(() => {
+          wx.navigateBack();
+        }, 1500);
+        return;
+      }
+      
+      // 其他错误显示通用错误信息
+      let errorMessage = '加入房间失败';
+      if (error.message) {
+        if (error.message.includes('房间已满')) {
+          errorMessage = '房间已满（最多30人）';
+        } else if (error.message.includes('权限') || error.message.includes('permission')) {
+          errorMessage = '房间权限不足';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       wx.showToast({
-        title: '加入房间失败',
-        icon: 'error'
+        title: errorMessage,
+        icon: 'none'
       });
       setTimeout(() => {
         wx.navigateBack();
@@ -863,8 +911,11 @@ Page({
     const startWatcher = () => {
       const watcher = db.collection('rooms').doc(this.data.roomId).watch({
         onChange: async (snapshot) => {
+          console.log('房间数据监听触发，文档数量:', snapshot.docs.length);
+          
           // 检查房间是否被删除或状态变为inactive（docs长度为0表示文档被删除）
           if (snapshot.docs.length === 0) {
+            console.log('房间已被删除，跳转到结算页面');
             // 房间已被删除，直接跳转到结算页面
             wx.redirectTo({
               url: `/pages/settlement/settlement?roomClosed=true`
@@ -874,12 +925,14 @@ Page({
           
           // 检查房间状态是否为inactive
           if (snapshot.docs.length > 0 && snapshot.docs[0].status === 'inactive') {
+            console.log('房间状态变为inactive，跳转到结算页面');
             // 房间已结算，跳转到结算页面
+            const roomData = snapshot.docs[0];
             wx.redirectTo({
               url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
-                roomId: snapshot.docs[0]._id,
-                roomNumber: snapshot.docs[0].roomNumber,
-                players: snapshot.docs[0].players,
+                roomId: roomData._id,
+                roomNumber: roomData.roomNumber,
+                players: roomData.players,
                 rate: 1 // 默认倍率
               }))}`
             });
@@ -933,50 +986,79 @@ Page({
         },
         onError: async (error) => {
           console.error('监听房间数据失败:', error);
-          // 检查错误类型，如果是因为房间不存在导致的错误，可能是房间已被删除
-          if (error.errMsg && (error.errMsg.includes('document not exist') || error.errMsg.includes('找不到该记录'))) {
-            // 房间不存在，直接跳转到结算页面
-            wx.redirectTo({
-              url: `/pages/settlement/settlement?roomClosed=true`
-            });
-            return;
-          }
           
-          // 检查是否是因为房间状态为inactive导致的错误
-          if (error.errMsg && error.errMsg.includes('permission denied')) {
-            // 尝试获取房间数据，检查状态
+          // 统一处理房间已结算或已删除的情况
+          const handleRoomInactive = async () => {
             try {
+              // 尝试获取房间数据，检查状态
               const roomResult = await db.collection('rooms').doc(this.data.roomId).get();
-              if (roomResult.data && roomResult.data.status === 'inactive') {
-                // 房间已结算，跳转到结算页面
+              if (roomResult.data) {
+                if (roomResult.data.status === 'inactive') {
+                  // 房间已结算，跳转到结算页面
+                  console.log('检测到房间已结算，跳转到结算页面');
+                  wx.redirectTo({
+                    url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
+                      roomId: roomResult.data._id,
+                      roomNumber: roomResult.data.roomNumber,
+                      players: roomResult.data.players,
+                      rate: 1 // 默认倍率
+                    }))}`
+                  });
+                  return true;
+                }
+              } else {
+                // 房间不存在，跳转到结算页面
+                console.log('房间不存在，跳转到结算页面');
                 wx.redirectTo({
-                  url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
-                    roomId: roomResult.data._id,
-                    roomNumber: roomResult.data.roomNumber,
-                    players: roomResult.data.players,
-                    rate: 1 // 默认倍率
-                  }))}`
+                  url: `/pages/settlement/settlement?roomClosed=true`
                 });
-                return;
+                return true;
               }
             } catch (checkError) {
               console.log('检查房间状态失败:', checkError);
+              // 如果检查失败，假设房间已结算，跳转到结算页面
+              console.log('检查房间状态失败，假设房间已结算');
+              wx.redirectTo({
+                url: `/pages/settlement/settlement?roomClosed=true`
+              });
+              return true;
             }
+            return false;
+          };
+          
+          // 检查错误类型，统一处理房间已结算的情况
+          if (error.errMsg && (
+            error.errMsg.includes('document not exist') || 
+            error.errMsg.includes('找不到该记录') ||
+            error.errMsg.includes('permission denied') ||
+            error.errMsg.includes('权限不足') ||
+            error.errMsg.includes('document is deleted')
+          )) {
+            await handleRoomInactive();
+            return;
           }
           
           // 添加重试机制
           if (retryCount < maxRetries) {
             retryCount++;
+            console.log(`监听失败，重试第${retryCount}次`);
             // 延迟一段时间后重新启动监听器
             setTimeout(() => {
-              this.watcher.close();
+              if (this.watcher) {
+                this.watcher.close();
+              }
               startWatcher();
-            }, 2000);
+            }, 2000 * retryCount); // 递增延迟
           } else {
-            wx.showToast({
-              title: '数据同步异常，请刷新页面',
-              icon: 'none'
-            });
+            console.log('监听重试次数已达上限，检查房间状态');
+            // 重试次数用完，尝试最后检查一次房间状态
+            const handled = await handleRoomInactive();
+            if (!handled) {
+              wx.showToast({
+                title: '数据同步异常，请刷新页面',
+                icon: 'none'
+              });
+            }
           }
         }
       });
