@@ -91,7 +91,16 @@ page {
   padding: 0 10rpx;
 }
 
-.game-time text, .room-id text {
+.game-time text {
+  color: #333;
+  font-size: 24rpx;
+  display: inline-block;
+  line-height: 1.4;
+  vertical-align: middle;
+  white-space: pre-line; /* 支持换行符显示 */
+}
+
+.room-id text {
   color: #333;
   font-size: 24rpx;
   display: inline-block;
@@ -170,6 +179,12 @@ page {
   color: #333;
   font-size: 24rpx;
   flex: 1;
+  /* 防止昵称换行 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* 限制昵称区域的最大宽度 */
+  max-width: 200rpx;
 }
 
 .player-score {

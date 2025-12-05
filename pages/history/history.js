@@ -80,9 +80,9 @@ Page({
               if (currentPageData && currentPageData.length > 0) {
                 // 为每条记录添加_index属性和格式化时间
                 const formattedHistory = currentPageData.map((item, index) => {
-                  // 将endTime转换为可读时间
+                  // 将endTime转换为可读时间，分行显示
                   const date = new Date(item.endTime);
-                  const formattedTime = `${date.getMonth() + 1}月${date.getDate()}日 ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+                  const formattedTime = `${date.getFullYear()}年\n${date.getMonth() + 1}月${date.getDate()}日\n${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
                   
                   // 格式化details数据，确保与WXML中使用的属性名一致
                   const details = (item.players || []).map(player => ({
