@@ -13,11 +13,9 @@ Page({
   },
 
   async onLoad(options) {
-    console.log('=== 结算页面加载 ===', options);
     
     // 检查房间是否已关闭
     if (options.roomClosed) {
-      console.log('房间已被结算关闭');
       this.setData({ roomClosed: true });
       
       // 如果有关闭原因，显示相应提示
@@ -41,8 +39,6 @@ Page({
       if (!players || !Array.isArray(players)) {
         // 如果没有完整的结算数据，但有roomId，尝试从数据库加载已结算房间的数据
         if (roomId) {
-          console.log('尝试加载已结算房间的数据:', roomId);
-          
           try {
             const roomResult = await db.collection('rooms').doc(roomId).get();
             if (roomResult && roomResult.data) {
@@ -52,7 +48,6 @@ Page({
                 // 房间已结算，直接加载数据
                 const settlementAllowed = await this.checkAndLockSettlement(roomId, true);
                 if (settlementAllowed) {
-                  console.log('成功加载已结算房间数据');
                   return; // checkAndLockSettlement 内部已经设置了数据
                 }
               }
@@ -136,24 +131,23 @@ Page({
    */
   async checkAndLockSettlement(roomId, isViewOnly = false) {
     try {
-      console.log('开始检查房间结算锁定状态:', roomId, '查看模式:', isViewOnly);
       
       // 尝试获取房间当前状态
       const roomDoc = await db.collection('rooms').doc(roomId).get();
       const roomData = roomDoc.data;
       
       if (!roomData) {
-        console.log('房间不存在:', roomId);
+
         return false;
       }
       
       // 如果是查看模式或房间已经结算，允许访问但不设置锁定
       if (roomData.status === 'inactive' || isViewOnly) {
-        console.log('房间已结算或查看模式，允许访问:', roomId);
+
         
         // 如果房间已经结算，尝试加载结算数据
         if (roomData.status === 'inactive') {
-          console.log('加载已结算房间的结算数据');
+  
           await this.loadExistingSettlementData(roomId);
         }
         
@@ -170,10 +164,10 @@ Page({
         const lockTimeout = 30000; // 30秒超时
         
         if (lockAge < lockTimeout) {
-          console.log('房间正在被其他用户结算，锁定时间:', lockTime);
+
           return false;
         } else {
-          console.log('检测到过期的结算锁定，清理并继续:', lockAge);
+
         }
       }
       
@@ -188,7 +182,7 @@ Page({
           }
         });
         
-        console.log('结算锁定设置成功:', updateResult);
+
         
         // 启动锁定超时清理机制
         setTimeout(() => {
@@ -210,13 +204,11 @@ Page({
    */
   async loadExistingSettlementData(roomId) {
     try {
-      console.log('加载已结算房间的结算数据:', roomId);
       
       const roomDoc = await db.collection('rooms').doc(roomId).get();
       const roomData = roomDoc.data;
       
       if (!roomData) {
-        console.log('房间数据不存在:', roomId);
         return;
       }
       
@@ -239,7 +231,7 @@ Page({
           settlementTime: roomData.closeTime ? new Date(roomData.closeTime).toISOString() : new Date().toISOString()
         });
         
-        console.log('已结算房间数据加载成功');
+
       }
     } catch (error) {
       console.error('加载已结算房间数据失败:', error);
@@ -279,8 +271,6 @@ Page({
    */
   async clearSettlementLock(roomId) {
     try {
-      console.log('清理房间结算锁定:', roomId);
-      
       // 只清理锁定相关字段，不修改房间状态
       await db.collection('rooms').doc(roomId).update({
         data: {
@@ -291,7 +281,7 @@ Page({
         }
       });
       
-      console.log('结算锁定清理完成:', roomId);
+
     } catch (error) {
       console.error('清理结算锁定失败:', error);
     }
@@ -342,7 +332,6 @@ Page({
       const app = getApp();
       let userInfo = app.globalData.userInfo || {};
       if (!userInfo || !userInfo.nickName) {
-        console.log('没有完整用户信息，生成默认信息');
         userInfo = {
           ...userInfo,
           nickName: '玩家' + Math.floor(Math.random() * 900) + 100,
@@ -375,9 +364,7 @@ Page({
           }
           // 将openid存入缓存
           cacheManager.setOpenId(openId);
-          console.log('通过云函数获取用户openId:', openId);
         } else {
-          console.log('使用缓存的用户openId:', openId);
         }
       } catch (openIdError) {
         console.error('获取用户openId失败:', openIdError);
@@ -386,7 +373,6 @@ Page({
       
       // 生成唯一房间ID（使用时间戳和随机数）
       const roomId = Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
-      console.log('生成的新房间ID:', roomId);
       
       // 生成房间编号（纯数字）
       const roomNumber = Math.floor(Math.random() * 9000) + 1000;
@@ -410,19 +396,15 @@ Page({
       };
       
       // 保存到数据库 - 改进错误处理和Promise链
-      console.log('准备保存新房间到数据库');
       const addResult = await db.collection('rooms').add({
         data: newRoomData
       });
-      
-      console.log('新房间创建成功，结果:', addResult);
       
       // 跳转到新房间 - 使用try-catch保护
       try {
         wx.reLaunch({
           url: `/pages/room/room?mode=create&roomId=${encodeURIComponent(roomId)}`,
           success: () => {
-            console.log('成功跳转至新房间');
             // 跳转成功后重置创建状态（虽然通常不会执行到这里）
             this.setData({ isCreatingNewRoom: false });
           },
@@ -457,14 +439,12 @@ Page({
   /**
    * 返回首页
    */
-  goToHome() {
-    console.log('返回首页按钮被点击');
+ goToHome() {
     try {
       // 直接使用switchTab跳转到首页，避免页面堆栈问题
       wx.switchTab({
         url: '/pages/home/home',
         success: () => {
-          console.log('使用switchTab成功跳转至首页');
         },
         fail: (error) => {
           console.error('switchTab跳转首页失败:', error);
@@ -472,7 +452,6 @@ Page({
           wx.reLaunch({
             url: '/pages/home/home',
             success: () => {
-              console.log('使用reLaunch成功跳转至首页');
             },
             fail: (reLaunchError) => {
               console.error('reLaunch跳转首页也失败:', reLaunchError);
@@ -480,7 +459,6 @@ Page({
               wx.reLaunch({
                 url: '/pages/index/index',
                 success: () => {
-                  console.log('使用index页面成功跳转至首页');
                 }
               });
             }
@@ -497,12 +475,7 @@ Page({
    */
   async validateSettlementData() {
     try {
-      console.log('=== 开始验证结算数据保存 ===');
-      console.log('当前房间ID:', this.data.roomId);
-      console.log('当前房间编号:', this.data.roomNumber);
-      
       if (!this.data.roomId) {
-        console.log('❌ 没有房间ID，跳过数据验证');
         return;
       }
       
@@ -513,7 +486,6 @@ Page({
           name: 'getOpenId'
         });
         openId = userInfoResult.openId;
-        console.log('✅ 获取到用户openId:', openId);
       } catch (openIdError) {
         console.error('❌ 获取用户openId失败:', openIdError);
         wx.showToast({
@@ -524,13 +496,10 @@ Page({
         return;
       }
       
-      console.log(`🔍 验证用户 ${openId} 的结算数据是否保存成功`);
-      
       // 验证用户数据是否包含最新的结算记录
       let userDoc;
       try {
-        userDoc = await db.collection('users').doc(openId).get();
-        console.log('✅ 成功获取用户文档:', userDoc.data ? '有数据' : '无数据');
+      userDoc = await db.collection('users').doc(openId).get();
       } catch (getUserError) {
         console.error('❌ 获取用户文档失败:', getUserError);
         wx.showToast({
@@ -542,40 +511,21 @@ Page({
       }
       
       const userData = userDoc.data || {};
-      console.log('📊 用户数据结构分析:', {
-        hasUserData: !!userData,
-        hasGamedata: !!userData.gamedata,
-        gamedataType: typeof userData.gamedata,
-        isArray: Array.isArray(userData.gamedata),
-        hasRecords: userData.gamedata && typeof userData.gamedata === 'object' && !!userData.gamedata.records,
-        hasStatistics: !!userData.statistics // 新的数据结构：statistics在根级别
-      });
       
       // 兼容新旧数据结构
       let gamedata = [];
       let latestRecord = null;
       let dataStructure = 'unknown';
       
-      console.log('🔍 详细数据结构分析:', {
-        gamedataValue: userData.gamedata,
-        gamedataType: typeof userData.gamedata,
-        isArray: Array.isArray(userData.gamedata)
-      });
-      
       // 检查数据结构：优先检查数组格式
       if (Array.isArray(userData.gamedata)) {
-        console.log('🔄 使用数组结构');
         dataStructure = 'array';
         gamedata = userData.gamedata;
-        console.log(`📈 用户历史结算记录数: ${gamedata.length}`);
         
         if (gamedata.length > 0) {
-          latestRecord = gamedata[gamedata.length - 1];
-          console.log('🆕 最新记录详细信息:', latestRecord);
+            latestRecord = gamedata[gamedata.length - 1];
         }
       } else {
-        console.log('❌ 数据结构为空或无效');
-        console.log('🔍 详细数据结构:', userData.gamedata);
       }
       
       if (latestRecord) {
@@ -590,34 +540,14 @@ Page({
           const actualTime = new Date(latestRecord.endTime).getTime();
           const timeDiff = Math.abs(expectedTime - actualTime);
           timeMatch = timeDiff <= 3000; // 允许3秒误差
-          
-          console.log('⏰ 时间验证详情:', {
-            expectedTime: this.data.settlementTime,
-            actualTime: latestRecord.endTime,
-            timeDiff: timeDiff,
-            timeMatch: timeMatch
-          });
         } else {
-          console.log('⚠️ 时间数据缺失，跳过时间验证');
           // 如果没有时间数据，只验证房间编号
           timeMatch = true;
         }
         
         const isMatch = roomNumberMatch && timeMatch;
-        console.log('🧪 数据验证结果:', {
-          expectedRoomNumber: this.data.roomNumber,
-          expectedEndTime: this.data.settlementTime,
-          actualRoomNumber: latestRecord.roomNumber,
-          actualEndTime: latestRecord.endTime,
-          roomNumberMatch: roomNumberMatch,
-          timeMatch: timeMatch,
-          isMatch: isMatch,
-          dataStructure: dataStructure
-        });
         
         if (isMatch) {
-          console.log('✅ 结算数据验证成功！最新记录匹配当前房间');
-          console.log('🎉 结算数据保存和验证全部完成！');
           
           wx.showToast({
             title: '✅ 数据保存成功',
@@ -636,16 +566,6 @@ Page({
           }, 1500);
           
         } else {
-          console.log('❌ 结算数据验证失败！最新记录不匹配当前房间');
-          console.log('🔍 验证详情:', {
-            expectedRoomNumber: this.data.roomNumber,
-            actualRoomNumber: latestRecord.roomNumber,
-            expectedEndTime: this.data.settlementTime,
-            actualEndTime: latestRecord.endTime,
-            dataStructure: dataStructure,
-            roomNumberMatch: roomNumberMatch,
-            timeMatch: timeMatch
-          });
           
           wx.showToast({
             title: `⚠️ 数据保存异常（房间ID不匹配）`,
@@ -654,13 +574,6 @@ Page({
           });
         }
       } else {
-        console.log('❌ 结算数据验证失败！没有找到历史结算记录');
-        console.log('🔍 详细信息:', {
-          userHasGamedata: !!userData.gamedata,
-          gamedataType: typeof userData.gamedata,
-          dataStructure: dataStructure,
-          recordsCount: gamedata.length
-        });
         
         wx.showToast({
           title: '❌ 数据保存失败（无记录）',
@@ -693,13 +606,12 @@ Page({
    * 将房间状态改为inactive而不是直接删除，确保可以查看历史结算数据
    */
   async onUnload() {
-    console.log('结算页面卸载，将房间状态改为inactive');
     if (this.data.roomId) {
       try {
         // 清理结算锁定并设置最终结算状态
         await this.finalizeSettlement(this.data.roomId);
         
-        console.log('房间结算完成:', this.data.roomId);
+  
         
         // 通知home页面刷新活跃房间列表
         const pages = getCurrentPages();
@@ -707,7 +619,6 @@ Page({
           // 尝试在页面栈中找到home页
           for (const page of pages) {
             if (page.route === 'pages/home/home' && typeof page.checkActiveRoom === 'function') {
-              console.log('通知home页面刷新活跃房间');
               page.checkActiveRoom();
               break;
             }
@@ -731,7 +642,6 @@ Page({
    */
   async finalizeSettlement(roomId) {
     try {
-      console.log('开始完成结算流程:', roomId);
       
       // 更新房间状态为已结算，并清理可能存在的pending_settlement状态
       await db.collection('rooms').doc(roomId).update({
@@ -747,7 +657,7 @@ Page({
         }
       });
       
-      console.log('结算流程完成:', roomId);
+
     } catch (error) {
       console.error('完成结算流程失败:', error);
       throw error;

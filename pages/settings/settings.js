@@ -48,7 +48,6 @@ Page({
         const userDoc = await db.collection('users').doc(openId).get()
         
         if (userDoc.data) {
-          console.log('从数据库获取到最新用户信息')
           // 更新全局用户信息
           userInfo = {
             nickName: userDoc.data.nickName || '玩家',
@@ -57,7 +56,6 @@ Page({
           app.globalData.userInfo = userInfo
         }
       } catch (dbError) {
-        console.log('从数据库获取用户信息失败，使用本地信息', dbError)
       }
       
       // 设置页面数据
@@ -145,12 +143,10 @@ Page({
           qrcodeUrl = result.result.qrcodeUrl;
           // 将二维码存入缓存
           cacheManager.setGeneralQRCode(qrcodeUrl);
-          console.log('通过云函数生成通用二维码');
         } else {
           throw new Error(result.result.error || '生成小程序码失败')
         }
       } else {
-        console.log('使用缓存的通用二维码');
         wx.hideLoading();
       }
       

@@ -66,11 +66,6 @@ Page({
               const records = gameData; // gamedata直接是数组
               const statistics = res.data.statistics || {}; // 获取statistics统计信息
               
-              console.log('历史结算记录原始数据:', {
-                totalRecords: records.length,
-                statistics: statistics
-              });
-              
               // 计算总数据量
               const totalCount = records.length;
               

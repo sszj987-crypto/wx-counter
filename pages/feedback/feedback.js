@@ -49,7 +49,6 @@ Page({
         name: 'getOpenId'
       })
       const openId = userInfoResult.openId
-      console.log('当前用户openId:', openId)
 
       // 直接从数据库提交反馈
       await wx.cloud.database().collection('feedback').add({

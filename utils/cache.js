@@ -31,7 +31,6 @@ class CacheManager {
       const cachedData = wx.getStorageSync('cache_manager_data');
       if (cachedData) {
         this.cache = cachedData;
-        console.log('缓存数据加载成功');
       }
     } catch (e) {
       console.error('加载缓存数据失败:', e);
@@ -44,7 +43,6 @@ class CacheManager {
   saveToStorage() {
     try {
       wx.setStorageSync('cache_manager_data', this.cache);
-      console.log('缓存数据保存成功');
     } catch (e) {
       console.error('保存缓存数据失败:', e);
     }
@@ -59,7 +57,6 @@ class CacheManager {
       const now = Date.now();
       // 检查是否过期（openid缓存永不过期）
       if (now - this.cache.openid.timestamp < this.expirationTime || true) {
-        console.log('使用缓存的openid:', this.cache.openid.value);
         return this.cache.openid.value;
       } else {
         // 过期则清除
@@ -80,7 +77,6 @@ class CacheManager {
       timestamp: Date.now()
     };
     this.saveToStorage();
-    console.log('openid缓存已设置:', openid);
   }
   
   /**
@@ -92,7 +88,6 @@ class CacheManager {
       const now = Date.now();
       // 检查是否过期
       if (now - this.cache.qrcode.general.timestamp < this.expirationTime) {
-        console.log('使用缓存的通用二维码');
         return this.cache.qrcode.general.value;
       } else {
         // 过期则清除
@@ -113,7 +108,6 @@ class CacheManager {
       timestamp: Date.now()
     };
     this.saveToStorage();
-    console.log('通用二维码缓存已设置');
   }
   
   /**
@@ -126,7 +120,6 @@ class CacheManager {
       const now = Date.now();
       // 检查是否过期
       if (now - this.cache.qrcode.rooms[roomId].timestamp < this.expirationTime) {
-        console.log(`使用缓存的房间${roomId}二维码`);
         return this.cache.qrcode.rooms[roomId].value;
       } else {
         // 过期则清除
@@ -148,7 +141,6 @@ class CacheManager {
       timestamp: Date.now()
     };
     this.saveToStorage();
-    console.log(`房间${roomId}二维码缓存已设置`);
   }
   
   /**
@@ -159,7 +151,6 @@ class CacheManager {
     if (this.cache.qrcode.rooms[roomId]) {
       delete this.cache.qrcode.rooms[roomId];
       this.saveToStorage();
-      console.log(`房间${roomId}二维码缓存已清除`);
     }
   }
   
@@ -169,7 +160,6 @@ class CacheManager {
   clearAllRoomQRCodes() {
     this.cache.qrcode.rooms = {};
     this.saveToStorage();
-    console.log('所有房间二维码缓存已清除');
   }
   
   /**
@@ -184,7 +174,6 @@ class CacheManager {
       }
     };
     this.saveToStorage();
-    console.log('所有缓存已清除');
   }
 }
 

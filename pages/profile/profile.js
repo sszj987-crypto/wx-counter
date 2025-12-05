@@ -114,14 +114,12 @@ Page({
         name: 'getOpenId'
       })
       const openId = userInfoResult.openId
-      console.log('当前用户openId:', openId)
 
       // 直接从数据库更新用户信息
       const userRef = wx.cloud.database().collection('users').doc(openId)
       const userDoc = await userRef.get().catch(() => ({ data: null }))
 
       if (userDoc.data) {
-        console.log('更新现有用户信息')
         await userRef.update({
           data: {
             nickName: userInfo.nickName,
@@ -130,7 +128,6 @@ Page({
           }
         })
       } else {
-        console.log('创建新用户信息')
         await wx.cloud.database().collection('users').add({
           data: {
             _id: openId,

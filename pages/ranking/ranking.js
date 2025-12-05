@@ -41,14 +41,12 @@ Page({
         name: 'getOpenId'
       })
       const currentOpenId = userInfoResult.openId
-      console.log('当前用户OpenId:', currentOpenId)
       
       // 获取当前用户的gamemate数据
       const currentUserDoc = await db.collection('users').doc(currentOpenId).get()
       const currentUserData = currentUserDoc.data || {}
       const gamemates = currentUserData.gamemate || []
       
-      console.log('当前用户的gamemate数据:', gamemates)
       
       // 如果没有任何gamemate数据，至少显示当前用户自己
       const allUsersForRanking = []
@@ -78,7 +76,6 @@ Page({
       if (gamemates.length > 0) {
         // 获取所有gamemate用户的openId
         const gamemateOpenIds = gamemates.map(g => g.openId)
-        console.log('需要获取数据的gamemate用户ID:', gamemateOpenIds)
         
         // 查询存在的用户数据（包含当前用户和所有gamemate用户）
         const result = await db.collection('users')
@@ -95,7 +92,6 @@ Page({
           })
           .get()
 
-        console.log('查询到的用户数据:', result.data)
         
         // 为每个gamemate用户创建排行榜数据
         gamemates.forEach(gamemate => {
@@ -145,7 +141,6 @@ Page({
         })
       }
       
-      console.log('处理后的排行榜数据:', allUsersForRanking)
       
       this.setData({ rankingList: allUsersForRanking })
       this.sortRanking() // 默认按胜率排序

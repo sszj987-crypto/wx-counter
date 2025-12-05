@@ -29,7 +29,6 @@ exports.main = async (event, context) => {
     params.scene = roomId ? `roomId=${roomId}` : 'page=home'
     params.page = 'pages/home/home' // 使用首页作为统一页面路径
     
-    console.log('生成小程序码参数:', params)
 
     // 调用小程序码生成API
     const result = await cloud.openapi.wxacode.getUnlimited(params)

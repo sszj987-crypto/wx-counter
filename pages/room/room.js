@@ -36,7 +36,6 @@ Page({
    * 生命周期函数--监听页面加载
    */
   async onLoad(options) {
-    console.log('房间页面加载，参数:', options);
     const { roomId, mode } = options;
     const app = getApp();
     
@@ -45,13 +44,10 @@ Page({
     
     // 然后处理房间逻辑
     if (mode === 'create') {
-      console.log('创建房间模式');
       this.createRoom();
     } else if (roomId) {
-      console.log('加入房间模式，房间ID:', roomId);
       this.joinRoom(roomId);
     } else {
-      console.log('房间信息错误');
       wx.showToast({
         title: '房间信息错误',
         icon: 'error'
@@ -157,7 +153,6 @@ Page({
         const userDoc = await db.collection('users').doc(openId).get();
         
         if (userDoc.data) {
-          console.log('从数据库获取到最新用户信息:', userDoc.data);
           // 更新用户信息
           userInfo = {
             nickName: userDoc.data.nickName || '玩家',
@@ -167,12 +162,10 @@ Page({
           app.globalData.userInfo = userInfo;
         }
       } catch (dbError) {
-        console.log('从数据库获取用户信息失败，使用本地信息', dbError);
       }
       
       // 如果仍然没有用户信息，生成默认信息
       if (!userInfo.nickName) {
-        console.log('没有用户信息，生成默认信息');
         userInfo = {
           nickName: '玩家' + Math.floor(Math.random() * 900) + 100,
           avatarUrl: '/images/default-avatar.png'
@@ -180,7 +173,6 @@ Page({
         app.globalData.userInfo = userInfo;
       }
       
-      console.log('最终用户信息:', userInfo);
       // 更新页面数据
       this.setData({
         userInfo: userInfo,
@@ -204,7 +196,6 @@ Page({
    * 创建房间
    */
   async createRoom() {
-    console.log('开始创建房间');
     this.setData({ isCreating: true });
     
     try {
@@ -218,7 +209,6 @@ Page({
         name: 'getOpenId'
       });
       const openId = userInfo.openId;
-      console.log('当前用户openId:', openId);
       
       // 检查用户已创建的房间数量（排除已结算的房间）
       try {
@@ -230,7 +220,6 @@ Page({
           })
           .get()
           
-        console.log('用户已创建的房间数量:', result.data.length)
         
         // 如果用户已创建的房间超过2个，提示无法创建新房间
         if (result.data.length >= 2) {
@@ -261,7 +250,6 @@ Page({
 
       // 生成唯一房间ID
       const roomId = this.generateRoomId();
-      console.log('生成的房间ID:', roomId);
       
       // 生成房间编号（纯数字）
       const roomNumber = Math.floor(Math.random() * 9000) + 1000;
@@ -284,17 +272,13 @@ Page({
         totalRounds: 0,
         teaServiceScore: 0 // 新增：台位分数记忆
       };
-      console.log('房间数据:', roomData);
 
       // 创建房间
-      console.log('开始创建房间到数据库');
       await wx.cloud.database().collection('rooms').add({
         data: roomData
       });
-      console.log('房间创建成功');
 
       // 更新用户信息
-      console.log('开始更新用户信息');
       try {
         await wx.cloud.database().collection('users').doc(openId).set({
             data: {
@@ -306,9 +290,7 @@ Page({
               lastActiveTime: new Date()
             }
           });
-          console.log('用户信息更新成功');
         } catch (error) {
-          console.log('用户信息更新失败，尝试创建新用户:', error);
           // 如果用户不存在则创建
           await wx.cloud.database().collection('users').add({
             data: {
@@ -330,10 +312,8 @@ Page({
               lastActiveTime: new Date()
             }
           });
-        console.log('新用户创建成功');
       }
 
-      console.log('房间创建成功，房间ID:', roomId, '房间数据:', roomData);
       this.setData({
         roomId: roomId,
         roomData: roomData,
@@ -344,7 +324,6 @@ Page({
       const pages = getCurrentPages();
       const homePage = pages.find(page => page.route === 'pages/home/home');
       if (homePage) {
-        console.log('通知home页面刷新活跃房间');
         // 如果home页面已经注册了roomCreated事件，触发该事件
         const eventChannel = this.getOpenerEventChannel();
         if (eventChannel) {
@@ -409,9 +388,7 @@ Page({
         openId = userInfoResult.openId;
         // 将openid存入缓存
         cacheManager.setOpenId(openId);
-        console.log('通过云函数获取用户openId:', openId);
       } else {
-        console.log('使用缓存的用户openId:', openId);
       }
       
       // 更新currentUserOpenId
@@ -420,14 +397,12 @@ Page({
       });
 
       // 查找房间
-      console.log('查找房间，房间ID:', roomId);
       let roomResult;
       try {
         roomResult = await wx.cloud.database().collection('rooms').doc(roomId).get();
       } catch (error) {
         // 检查是否是因为房间状态为inactive导致的权限错误
         if (error.errMsg && error.errMsg.includes('permission denied')) {
-          console.log('房间可能已结算，状态为inactive');
           // 尝试获取房间数据，检查状态
           try {
             const inactiveRoomResult = await wx.cloud.database().collection('rooms').doc(roomId).get();
@@ -444,7 +419,6 @@ Page({
               return;
             }
           } catch (checkError) {
-            console.log('检查房间状态失败:', checkError);
           }
         }
         throw error;
@@ -455,11 +429,9 @@ Page({
       }
 
       const room = roomResult.data;
-      console.log('找到房间:', room);
       
       // 检查房间状态是否为inactive
       if (room.status === 'inactive') {
-        console.log('房间已结算，状态为inactive');
         // 房间已结算，跳转到结算页面
         wx.redirectTo({
           url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
@@ -482,7 +454,6 @@ Page({
       // 检查用户是否已在房间中
       const existingPlayer = room.players.find(player => player.openId === openId);
       if (existingPlayer) {
-        console.log('用户已在房间中');
         this.setData({
           roomId: roomId,
           roomData: room
@@ -502,9 +473,7 @@ Page({
       try {
         const userResult = await wx.cloud.database().collection('users').doc(openId).get();
         userInfoFromDb = userResult.data;
-        console.log('从数据库获取的用户信息:', userInfoFromDb);
       } catch (e) {
-        console.log('数据库中未找到用户信息:', e);
       }
       
       // 合并用户信息 - 优先使用数据库信息，如果没有则使用本地信息或默认值
@@ -528,7 +497,6 @@ Page({
       
       // 更新全局用户信息
       app.globalData.userInfo = userInfo;
-      console.log('合并后的用户信息:', userInfo);
 
       // 添加用户到房间
       const newPlayer = {
@@ -558,7 +526,6 @@ Page({
           }
         });
       } catch (error) {
-        console.log('用户信息更新失败，尝试创建新用户:', error);
         await wx.cloud.database().collection('users').add({
           data: {
             _id: openId,
@@ -622,7 +589,6 @@ Page({
         try {
           const inactiveRoomResult = await wx.cloud.database().collection('rooms').doc(roomId).get();
           if (inactiveRoomResult.data && inactiveRoomResult.data.status === 'inactive') {
-            console.log('检测到房间已结算，跳转到结算页面');
             // 房间已结算，跳转到结算页面
             wx.redirectTo({
               url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
@@ -635,7 +601,6 @@ Page({
             return;
           }
         } catch (checkError) {
-          console.log('检查房间状态失败:', checkError);
         }
       }
       
@@ -698,7 +663,6 @@ Page({
           currentRoomId: this.data.roomId
         });
         
-        console.log('使用本地默认二维码图片');
         resolve(true);
         
       } catch (error) {
@@ -749,7 +713,6 @@ Page({
             qrcodeUrl = result.result.qrcodeUrl;
             // 将二维码存入缓存
             cacheManager.setRoomQRCode(this.data.roomId, qrcodeUrl);
-            console.log('通过云函数生成房间二维码');
           } else {
             // 使用云函数返回的详细错误信息
             throw new Error(result.result.error || '生成房间二维码失败');
@@ -758,7 +721,6 @@ Page({
           throw new Error('云函数调用失败，未返回预期结果');
         }
       } else {
-        console.log('使用缓存的房间二维码');
       }
       
       // 更新二维码URL并显示弹窗
@@ -887,7 +849,6 @@ Page({
     );
     
     if (teaServicePlayer) {
-      console.log('检测到台位/茶水玩家');
       this.setData({
         isTeaServiceEnabled: true,
         teaServicePlayerId: teaServicePlayer.openId
@@ -930,11 +891,9 @@ Page({
     const startWatcher = () => {
       const watcher = db.collection('rooms').doc(this.data.roomId).watch({
         onChange: async (snapshot) => {
-          console.log('房间数据监听触发，文档数量:', snapshot.docs.length);
           
           // 检查房间是否被删除或状态变为inactive（docs长度为0表示文档被删除）
           if (snapshot.docs.length === 0) {
-            console.log('房间已被删除，跳转到结算页面');
             // 房间已被删除，直接跳转到结算页面
             wx.redirectTo({
               url: `/pages/settlement/settlement?roomClosed=true`
@@ -944,7 +903,6 @@ Page({
           
           // 检查房间状态是否为inactive
           if (snapshot.docs.length > 0 && snapshot.docs[0].status === 'inactive') {
-            console.log('房间状态变为inactive，跳转到结算页面');
             // 房间已结算，跳转到结算页面
             const roomData = snapshot.docs[0];
             wx.redirectTo({
@@ -1014,7 +972,6 @@ Page({
               if (roomResult.data) {
                 if (roomResult.data.status === 'inactive') {
                   // 房间已结算，跳转到结算页面
-                  console.log('检测到房间已结算，跳转到结算页面');
                   wx.redirectTo({
                     url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
                       roomId: roomResult.data._id,
@@ -1027,16 +984,13 @@ Page({
                 }
               } else {
                 // 房间不存在，跳转到结算页面
-                console.log('房间不存在，跳转到结算页面');
                 wx.redirectTo({
                   url: `/pages/settlement/settlement?roomClosed=true`
                 });
                 return true;
               }
             } catch (checkError) {
-              console.log('检查房间状态失败:', checkError);
               // 如果检查失败，假设房间已结算，跳转到结算页面
-              console.log('检查房间状态失败，假设房间已结算');
               wx.redirectTo({
                 url: `/pages/settlement/settlement?roomClosed=true`
               });
@@ -1060,7 +1014,6 @@ Page({
           // 添加重试机制
           if (retryCount < maxRetries) {
             retryCount++;
-            console.log(`监听失败，重试第${retryCount}次`);
             // 延迟一段时间后重新启动监听器
             setTimeout(() => {
               if (this.watcher) {
@@ -1069,7 +1022,6 @@ Page({
               startWatcher();
             }, 2000 * retryCount); // 递增延迟
           } else {
-            console.log('监听重试次数已达上限，检查房间状态');
             // 重试次数用完，尝试最后检查一次房间状态
             const handled = await handleRoomInactive();
             if (!handled) {
@@ -1472,7 +1424,6 @@ Page({
       
       // 防重复结算检查
       if (this.data.isSettling) {
-        console.log('检测到结算正在进行中，忽略重复点击');
         wx.showToast({
           title: '结算正在进行中...',
           icon: 'none'
@@ -1526,7 +1477,6 @@ Page({
           settlementTime: new Date() // 添加结算时间标记
         }
       });
-      console.log('房间状态已更新为inactive并标记结算时间');
       } catch (roomError) {
         console.error('处理房间状态失败:', roomError);
         // 继续执行后续操作，不影响结算流程
@@ -1543,7 +1493,6 @@ Page({
             rate: settlementData.rate
           }))}`,
           success: () => {
-            console.log('跳转结算页面成功');
             // 移除立即删除房间的逻辑，改为在room页面onShow时检查是否需要删除
           },
           fail: (redirectError) => {
@@ -1557,7 +1506,6 @@ Page({
                 rate: settlementData.rate
               }))}`,
               success: () => {
-                console.log('使用reLaunch跳转结算页面成功');
                 // 移除立即删除房间的逻辑
               }
             });
@@ -1591,7 +1539,6 @@ Page({
    * 监听用户点击左上角返回按钮的事件
    */
   onBackPress() {
-    console.log('房间页面返回按钮点击');
     // 返回主页而不是直接退出小程序
     wx.switchTab({
       url: '/pages/home/home'
@@ -1604,18 +1551,9 @@ Page({
    */
   async recordGameResults(settlementData) {
     try {
-      console.log('=== 开始记录游戏结算数据 ===', {
-        roomId: settlementData.roomId,
-        roomNumber: settlementData.roomNumber,
-        players: settlementData.players.map(p => ({ nickName: p.nickName, score: p.score })),
-        rate: settlementData.rate,
-        settlementTime: settlementData.settlementTime
-      });
-      
       const db = wx.cloud.database();
       
       // 验证数据库连接
-      console.log('数据库连接验证:', !!db);
       
       // 处理每个玩家的结算数据
       const playerResults = settlementData.players.map(player => {
@@ -1638,13 +1576,11 @@ Page({
       
       // 为每个参与者更新数据
       for (const playerResult of playerResults) {
-        console.log(`\n--- 开始处理玩家: ${playerResult.nickName} (${playerResult.openId}) ---`);
         
         // 检查是否为茶水玩家（茶水玩家不需要创建或更新用户记录）
         const isTeaServicePlayer = playerResult.nickName === '台位/茶水' || playerResult.openId.startsWith('tea_service_');
         
         if (isTeaServicePlayer) {
-          console.log(`跳过茶水玩家 ${playerResult.nickName} 的用户记录操作`);
           continue; // 跳过茶水玩家，处理下一个玩家
         }
         
@@ -1658,7 +1594,6 @@ Page({
             }));
           
           // 获取用户当前数据
-          console.log(`获取用户数据: ${playerResult.openId}`);
           let currentUserData = {};
           try {
             const userDoc = await db.collection('users').doc(playerResult.openId).get();
@@ -1678,13 +1613,7 @@ Page({
                 : {};
               latestStats = latestGameData.statistics || {};
             }
-            console.log(`用户数据获取成功，当前数据:`, {
-              totalGames: latestStats?.totalGames || 0,
-              totalScore: latestStats?.totalScore || 0,
-              winRate: latestStats?.winRate || 0
-            });
           } catch (userError) {
-            console.log(`用户 ${playerResult.nickName} (${playerResult.openId}) 不存在，创建新用户记录`);
             
             // 如果用户不存在，创建新的用户记录
             const newUserData = {
@@ -1708,20 +1637,11 @@ Page({
               fromDatabase: true // 标记为来自数据库
             };
             
-            console.log(`🆕 创建新用户数据结构:`, {
-              openId: playerResult.openId,
-              nickName: playerResult.nickName,
-              gamedataStructure: 'array',
-              initialRecordsCount: newUserData.gamedata.length,
-              hasStatistics: true
-            });
-            
             // 创建用户记录
             try {
               await db.collection('users').add({
                 data: newUserData
               });
-              console.log(`新用户记录创建成功: ${playerResult.nickName} (${playerResult.openId})`);
             } catch (createError) {
               console.error(`创建用户记录失败:`, createError);
               // 跳过这个用户，继续处理其他玩家
@@ -1807,13 +1727,6 @@ Page({
               }))
           };
           
-          // 更新用户数据
-          console.log(`准备更新用户数据:`, {
-            totalGames, totalScore, wins, losses, draws, winRate,
-            gamedataRecordCount: (currentUserData.gamedata || []).length,
-            updatedGamematesCount: updatedGamemates.length
-          });
-          
           // 创建gamedata记录，包含游戏结算信息（不包含statistics）
           const gameDataRecord = {
             // gameId: settlementData.roomId, // 移除gameId字段，不需要保存在数据库中
@@ -1841,51 +1754,17 @@ Page({
           
           if (!currentGamedata) {
             // 旧用户完全没有gamedata字段
-            console.log(`🆕 旧用户无gamedata字段，创建新数组结构:`, {
-              userType: 'old_user_without_gamedata',
-              openId: playerResult.openId,
-              hasGamemate: !!currentUserData.gamemate
-            });
             newGameData = [gameDataRecord];
           } else if (Array.isArray(currentGamedata)) {
             // 已有数组结构，添加新记录
-            console.log(`🔄 检测到现有数组结构，添加新记录:`, {
-              currentArrayLength: currentGamedata.length,
-              isEmptyArray: currentGamedata.length === 0
-            });
             newGameData = [...currentGamedata, gameDataRecord];
           } else {
             // 旧对象结构，需要转换到数组
-            console.log(`🔄 检测到旧对象结构，转换为数组:`, {
-              currentGamedataType: typeof currentGamedata,
-              hasRecords: !!(currentGamedata && typeof currentGamedata === 'object' && !Array.isArray(currentGamedata))
-            });
             const existingRecords = (currentGamedata && typeof currentGamedata === 'object' && !Array.isArray(currentGamedata) && Array.isArray(currentGamedata.records)) ? currentGamedata.records : [];
             newGameData = [...existingRecords, gameDataRecord];
           }
           
-          console.log(`🎯 数据结构转换完成:`, {
-            from: !currentGamedata ? 'empty' : 
-                  Array.isArray(currentGamedata) ? 'existing_array' : 'old_object',
-            to: 'array',
-            recordsCount: newGameData.length
-          });
-
           // 准备更新数据
-          console.log(`准备更新用户数据 - ${playerResult.nickName}:`, {
-            openId: playerResult.openId,
-            gamematesCount: updatedGamemates.length,
-            recordsCount: newGameData.length
-          });
-          
-          console.log(`🚀 开始更新数据库 - ${playerResult.nickName}:`, {
-            openId: playerResult.openId,
-            collection: 'users',
-            docId: playerResult.openId,
-            operationType: 'update',
-            gamedataRecordsLength: newGameData.length
-          });
-          
           let updateResult;
           try {
             // 先验证数据库操作
@@ -1911,11 +1790,6 @@ Page({
               }
             });
             
-            console.log(`✅ 数据库更新成功 - ${playerResult.nickName}:`, {
-              updateResult: updateResult,
-              recordsCount: newGameData.length
-            });
-            
             // 验证更新结果
             if (!updateResult) {
               throw new Error('数据库更新返回空结果');
@@ -1934,12 +1808,6 @@ Page({
             });
             throw new Error(`用户 ${playerResult.nickName} 数据更新失败: ${updateError.message}`); // 抛出新错误
           }
-          
-          console.log(`✅ 用户 ${playerResult.nickName} (${playerResult.openId}) 结算数据更新成功`, {
-            totalGames, totalScore, wins, losses, draws, winRate,
-            recordsCount: newGameData.length
-          });
-          
         } catch (playerError) {
           console.error(`=== 更新玩家 ${playerResult.nickName} (${playerResult.openId}) 数据失败 ===`, {
             error: playerError,
@@ -1949,11 +1817,9 @@ Page({
           });
           // 继续处理其他玩家，不中断流程
         } finally {
-          console.log(`--- 玩家 ${playerResult.nickName} 处理完成 ---`);
         }
       }
       
-      console.log('=== 所有参与者结算数据记录完成 ===');
       
     } catch (error) {
       console.error('记录游戏结算数据失败:', error);
@@ -1979,7 +1845,6 @@ Page({
     try {
       const eventChannel = this.getOpenerEventChannel();
       if (eventChannel && typeof eventChannel.emit === 'function') {
-        console.log('页面卸载，通知home页面刷新活跃房间');
         eventChannel.emit('roomUpdated');
       }
     } catch (error) {
