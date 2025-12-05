@@ -25,16 +25,16 @@
   </view>
   
   <!-- 历史记录列表 -->
+  <!-- 表头（固定显示，不滚动） -->
+  <view class="history-header">
+    <view class="header-item">时间</view>
+    <view class="header-item">房间号</view>
+    <view class="header-item">结果</view>
+    <view class="header-item">得分</view>
+    <view class="header-item">详情</view>
+  </view>
+
   <scroll-view class="history-list" scroll-y bindscrolltolower="loadMoreData" lower-threshold="100">
-    <!-- 表头 -->
-    <view class="history-header">
-      <view class="header-item">时间</view>
-      <view class="header-item">房间号</view>
-      <view class="header-item">结果</view>
-      <view class="header-item">得分</view>
-      <view class="header-item">详情</view>
-    </view>
-    
     <!-- 记录列表 -->
     <view class="history-item" wx:for="{{historySettlements}}" wx:key="_index">
       <!-- 记录行 -->

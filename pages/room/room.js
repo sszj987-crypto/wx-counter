@@ -28,7 +28,8 @@ Page({
       show: false
     },
     isTeaServiceEnabled: false,
-    teaServicePlayerId: null
+    teaServicePlayerId: null,
+    isSettling: false // 防止重复结算的状态标志
   },
 
   /**
@@ -1451,9 +1452,23 @@ Page({
     try {
       const { rate } = this.data.settlementModal;
       
+      // 防重复结算检查
+      if (this.data.isSettling) {
+        console.log('检测到结算正在进行中，忽略重复点击');
+        wx.showToast({
+          title: '结算正在进行中...',
+          icon: 'none'
+        });
+        return;
+      }
+      
+      // 设置结算状态为进行中
+      this.setData({ isSettling: true });
+      
       // 验证倍率输入
       let rateValue = parseFloat(rate);
       if (!rate || isNaN(rateValue) || rateValue <= 0) {
+        this.setData({ isSettling: false });
         wx.showToast({
           title: '请输入有效倍率',
           icon: 'none'
@@ -1532,7 +1547,7 @@ Page({
       });
     } catch (error) {
       console.error('结算操作失败:', error);
-      wx.hideLoading();
+      this.setData({ isSettling: false }); // 重置结算状态
       
       // 根据不同错误类型显示不同提示
       if (error.errMsg && error.errMsg.includes('document.remove')) {
@@ -1546,6 +1561,11 @@ Page({
           icon: 'error'
         });
       }
+    } finally {
+      // 确保在任何情况下都重置结算状态
+      setTimeout(() => {
+        this.setData({ isSettling: false });
+      }, 2000);
     }
   },
 

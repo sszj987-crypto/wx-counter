@@ -14,11 +14,6 @@ Page({
   async onLoad(options) {
     console.log('=== 结算页面加载 ===', options);
     
-    // 验证结算数据是否正确保存到数据库
-    setTimeout(() => {
-      this.validateSettlementData();
-    }, 2000); // 延迟2秒执行，确保房间页面的数据保存操作已完成
-    
     // 检查房间是否已关闭
     if (options.roomClosed) {
       console.log('房间已被结算关闭');
@@ -43,6 +38,29 @@ Page({
       let { roomId, roomNumber, players, rate } = data;
     
       if (!players || !Array.isArray(players)) {
+        // 如果没有完整的结算数据，但有roomId，尝试从数据库加载已结算房间的数据
+        if (roomId) {
+          console.log('尝试加载已结算房间的数据:', roomId);
+          
+          try {
+            const roomResult = await db.collection('rooms').doc(roomId).get();
+            if (roomResult && roomResult.data) {
+              const roomData = roomResult.data;
+              
+              if (roomData.status === 'inactive' && roomData.players) {
+                // 房间已结算，直接加载数据
+                const settlementAllowed = await this.checkAndLockSettlement(roomId, true);
+                if (settlementAllowed) {
+                  console.log('成功加载已结算房间数据');
+                  return; // checkAndLockSettlement 内部已经设置了数据
+                }
+              }
+            }
+          } catch (dbError) {
+            console.error('获取房间信息失败:', dbError);
+          }
+        }
+        
         wx.showToast({
           title: '结算信息错误',
           icon: 'error'
@@ -65,6 +83,22 @@ Page({
         }
       }
 
+      // 结算前防重复结算检查（使用正常结算模式）
+      if (roomId) {
+        const settlementAllowed = await this.checkAndLockSettlement(roomId, false);
+        if (!settlementAllowed) {
+          wx.showToast({
+            title: '房间正在结算中，请稍候...',
+            icon: 'none',
+            duration: 2000
+          });
+          setTimeout(() => {
+            wx.navigateBack();
+          }, 2000);
+          return;
+        }
+      }
+
       // 计算倍率分并排序（按倍率分降序）
       const playersWithRateScore = players.map(player => ({
         ...player,
@@ -77,6 +111,11 @@ Page({
         players: playersWithRateScore,
         rate: rate || 1
       });
+      
+      // 验证结算数据是否正确保存到数据库
+      setTimeout(() => {
+        this.validateSettlementData();
+      }, 2000); // 延迟2秒执行，确保房间页面的数据保存操作已完成
     } catch (error) {
       console.error('解析结算数据失败:', error);
       this.setData({ roomClosed: true });
@@ -84,6 +123,170 @@ Page({
         title: '数据解析失败',
         icon: 'error'
       });
+    }
+  },
+
+  /**
+   * 检查并锁定结算状态，防止重复结算
+   * @param {string} roomId 房间ID
+   * @param {boolean} isViewOnly 是否只是查看模式（默认false）
+   * @returns {Promise<boolean>} 是否允许继续结算
+   */
+  async checkAndLockSettlement(roomId, isViewOnly = false) {
+    try {
+      console.log('开始检查房间结算锁定状态:', roomId, '查看模式:', isViewOnly);
+      
+      // 尝试获取房间当前状态
+      const roomDoc = await db.collection('rooms').doc(roomId).get();
+      const roomData = roomDoc.data;
+      
+      if (!roomData) {
+        console.log('房间不存在:', roomId);
+        return false;
+      }
+      
+      // 如果是查看模式或房间已经结算，允许访问但不设置锁定
+      if (roomData.status === 'inactive' || isViewOnly) {
+        console.log('房间已结算或查看模式，允许访问:', roomId);
+        
+        // 如果房间已经结算，尝试加载结算数据
+        if (roomData.status === 'inactive') {
+          console.log('加载已结算房间的结算数据');
+          await this.loadExistingSettlementData(roomId);
+        }
+        
+        return true;
+      }
+      
+      // 检查是否有其他用户正在结算（使用临时字段标记）
+      const now = new Date();
+      const lockTime = roomData.settlementLockTime;
+      
+      if (lockTime) {
+        // 检查锁定是否超时（防止死锁）
+        const lockAge = now - new Date(lockTime);
+        const lockTimeout = 30000; // 30秒超时
+        
+        if (lockAge < lockTimeout) {
+          console.log('房间正在被其他用户结算，锁定时间:', lockTime);
+          return false;
+        } else {
+          console.log('检测到过期的结算锁定，清理并继续:', lockAge);
+        }
+      }
+      
+      // 只有在非查看模式下才设置结算锁定
+      if (!isViewOnly) {
+        // 设置结算锁定（原子操作）
+        const updateResult = await db.collection('rooms').doc(roomId).update({
+          data: {
+            settlementLockTime: now,
+            settlementLocker: await this.getCurrentUserOpenId(),
+            status: 'pending_settlement' // 临时状态
+          }
+        });
+        
+        console.log('结算锁定设置成功:', updateResult);
+        
+        // 启动锁定超时清理机制
+        setTimeout(() => {
+          this.clearSettlementLock(roomId);
+        }, 30000); // 30秒后自动清理锁定
+      }
+      
+      return true;
+      
+    } catch (error) {
+      console.error('检查结算锁定失败:', error);
+      return false;
+    }
+  },
+
+  /**
+   * 加载已结算房间的结算数据
+   * @param {string} roomId 房间ID
+   */
+  async loadExistingSettlementData(roomId) {
+    try {
+      console.log('加载已结算房间的结算数据:', roomId);
+      
+      const roomDoc = await db.collection('rooms').doc(roomId).get();
+      const roomData = roomDoc.data;
+      
+      if (!roomData) {
+        console.log('房间数据不存在:', roomId);
+        return;
+      }
+      
+      // 从房间数据中提取结算信息
+      const { roomNumber, players, rate } = roomData;
+      
+      if (players && Array.isArray(players)) {
+        // 计算倍率分并排序（按倍率分降序）
+        const playersWithRateScore = players.map(player => ({
+          ...player,
+          rateScore: Math.round((player.score || 0) * (rate || 1))
+        })).sort((a, b) => b.rateScore - a.rateScore);
+
+        this.setData({
+          roomId: roomId,
+          roomNumber: roomNumber || '',
+          players: playersWithRateScore,
+          rate: rate || 1,
+          roomClosed: true // 标记房间已关闭
+        });
+        
+        console.log('已结算房间数据加载成功');
+      }
+    } catch (error) {
+      console.error('加载已结算房间数据失败:', error);
+    }
+  },
+
+  /**
+   * 获取当前用户OpenID
+   * @returns {Promise<string>} 用户OpenID
+   */
+  async getCurrentUserOpenId() {
+    try {
+      const app = getApp();
+      const cacheManager = app.globalData.cacheManager;
+      let openId = cacheManager.getOpenId();
+      
+      if (!openId) {
+        const cloudFunctionResult = await wx.cloud.callFunction({
+          name: 'getOpenId'
+        });
+        openId = cloudFunctionResult.result.openId;
+        cacheManager.setOpenId(openId);
+      }
+      
+      return openId;
+    } catch (error) {
+      console.error('获取用户OpenID失败:', error);
+      return '';
+    }
+  },
+
+  /**
+   * 清理结算锁定
+   * @param {string} roomId 房间ID
+   */
+  async clearSettlementLock(roomId) {
+    try {
+      console.log('清理房间结算锁定:', roomId);
+      
+      await db.collection('rooms').doc(roomId).update({
+        data: {
+          settlementLockTime: null,
+          settlementLocker: null,
+          status: 'active' // 恢复到活跃状态
+        }
+      });
+      
+      console.log('结算锁定清理完成:', roomId);
+    } catch (error) {
+      console.error('清理结算锁定失败:', error);
     }
   },
   
@@ -363,14 +566,10 @@ Page({
     console.log('结算页面卸载，将房间状态改为inactive');
     if (this.data.roomId) {
       try {
-        // 将房间状态更新为inactive
-        await db.collection('rooms').doc(this.data.roomId).update({
-          data: {
-            status: 'inactive',
-            closeTime: new Date() // 记录关闭时间
-          }
-        });
-        console.log('房间状态已更新为inactive:', this.data.roomId);
+        // 清理结算锁定并设置最终结算状态
+        await this.finalizeSettlement(this.data.roomId);
+        
+        console.log('房间结算完成:', this.data.roomId);
         
         // 通知home页面刷新活跃房间列表
         const pages = getCurrentPages();
@@ -385,8 +584,43 @@ Page({
           }
         }
       } catch (error) {
-        console.error('更新房间状态失败:', error);
+        console.error('完成结算状态更新失败:', error);
+        // 即使出错也要清理锁定
+        try {
+          await this.clearSettlementLock(this.data.roomId);
+        } catch (clearError) {
+          console.error('清理结算锁定失败:', clearError);
+        }
       }
     }
-  }
+  },
+
+  /**
+   * 完成结算流程，设置最终状态
+   * @param {string} roomId 房间ID
+   */
+  async finalizeSettlement(roomId) {
+    try {
+      console.log('开始完成结算流程:', roomId);
+      
+      // 更新房间状态为已结算
+      await db.collection('rooms').doc(roomId).update({
+        data: {
+          status: 'inactive',
+          closeTime: new Date(),
+          settlementCompleted: true,
+          settlementCompletedAt: new Date(),
+          settlementCompletedBy: await this.getCurrentUserOpenId()
+        }
+      });
+      
+      // 清理结算锁定
+      await this.clearSettlementLock(roomId);
+      
+      console.log('结算流程完成:', roomId);
+    } catch (error) {
+      console.error('完成结算流程失败:', error);
+      throw error;
+    }
+  },
 })
