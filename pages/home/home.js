@@ -292,12 +292,21 @@ Page({
         console.log('使用缓存的用户openId:', openId)
       }
 
-      // 准备用户数据
+      // 准备用户数据（使用新的对象结构）
       const userData = {
         _id: openId, // 使用openId作为文档ID
         nickName: userInfo.nickName || '玩家',
         avatarUrl: userInfo.avatarUrl || '/images/default-avatar.png',
-        gamedata: [], // 游戏数据数组
+        gamedata: [], // 直接数组结构存储游戏记录
+        statistics: {
+          totalGames: 0,
+          totalScore: 0,
+          wins: 0,
+          losses: 0,
+          draws: 0,
+          winRate: 0,
+          netScore: 0
+        },
         gamemate: [], // 游戏伙伴数组
         createTime: new Date(),
         updateTime: new Date(),

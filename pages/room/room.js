@@ -317,10 +317,19 @@ Page({
               nickName: this.data.userInfo.nickName || '用户',
               avatarUrl: this.data.userInfo.avatarUrl || '',
               gamemate: [],
-              gamedata: [],
+              gamedata: [], // 直接数组结构存储游戏记录
+              statistics: {
+                totalGames: 0,
+                totalScore: 0,
+                wins: 0,
+                losses: 0,
+                draws: 0,
+                winRate: 0,
+                netScore: 0
+              },
               lastActiveTime: new Date()
-          }
-        });
+            }
+          });
         console.log('新用户创建成功');
       }
 
@@ -557,7 +566,16 @@ Page({
             nickName: userInfo.nickName || '用户',
             avatarUrl: userInfo.avatarUrl || '/images/default-avatar.png',
             gamemate: [],
-            gamedata: [],
+            gamedata: [], // 直接数组结构存储游戏记录
+            statistics: {
+              totalGames: 0,
+              totalScore: 0,
+              wins: 0,
+              losses: 0,
+              draws: 0,
+              winRate: 0,
+              netScore: 0
+            },
             lastActiveTime: new Date()
           }
         });
@@ -1645,14 +1663,25 @@ Page({
           try {
             const userDoc = await db.collection('users').doc(playerResult.openId).get();
             currentUserData = userDoc.data || {};
-            // 从gamedata获取最新统计数据
-            const latestGameData = currentUserData.gamedata && currentUserData.gamedata.length > 0 
-              ? currentUserData.gamedata[currentUserData.gamedata.length - 1] 
-              : {};
+            // 从正确的数据结构获取最新统计数据
+            let latestStats;
+            if (currentUserData.statistics) {
+              // 新的数据结构：直接从根级别获取statistics
+              latestStats = currentUserData.statistics;
+            } else if (currentUserData.gamedata && !Array.isArray(currentUserData.gamedata) && currentUserData.gamedata.statistics) {
+              // 过渡数据结构：从gamedata对象获取statistics
+              latestStats = currentUserData.gamedata.statistics;
+            } else {
+              // 旧数据结构：从gamedata数组最后一个元素获取statistics
+              const latestGameData = currentUserData.gamedata && currentUserData.gamedata.length > 0 
+                ? currentUserData.gamedata[currentUserData.gamedata.length - 1] 
+                : {};
+              latestStats = latestGameData.statistics || {};
+            }
             console.log(`用户数据获取成功，当前数据:`, {
-              totalGames: latestGameData.statistics?.totalGames || 0,
-              totalScore: latestGameData.statistics?.totalScore || 0,
-              winRate: latestGameData.statistics?.winRate || 0
+              totalGames: latestStats?.totalGames || 0,
+              totalScore: latestStats?.totalScore || 0,
+              winRate: latestStats?.winRate || 0
             });
           } catch (userError) {
             console.log(`用户 ${playerResult.nickName} (${playerResult.openId}) 不存在，创建新用户记录`);
@@ -1664,11 +1693,28 @@ Page({
               nickName: playerResult.nickName || '玩家',
               avatarUrl: '', // 可以后续从其他地方获取
               gamemate: [],
-              gamedata: [], // 初始化gamedata数组
+              gamedata: [], // 直接数组结构存储游戏记录
+              statistics: {
+                totalGames: 0,
+                totalScore: 0,
+                wins: 0,
+                losses: 0,
+                draws: 0,
+                winRate: 0,
+                netScore: 0
+              },
               lastActiveTime: new Date(),
               createdAt: new Date(),
               fromDatabase: true // 标记为来自数据库
             };
+            
+            console.log(`🆕 创建新用户数据结构:`, {
+              openId: playerResult.openId,
+              nickName: playerResult.nickName,
+              gamedataStructure: 'array',
+              initialRecordsCount: newUserData.gamedata.length,
+              hasStatistics: true
+            });
             
             // 创建用户记录
             try {
@@ -1687,21 +1733,29 @@ Page({
           }
           
           // 计算更新后的统计数据
-          // 从gamedata获取最新统计信息
-          const latestGameData = currentUserData.gamedata && currentUserData.gamedata.length > 0 
-            ? currentUserData.gamedata[currentUserData.gamedata.length - 1] 
-            : {};
-          
-          // 获取当前统计数据
-          const currentStats = latestGameData.statistics || {
-            totalGames: 0,
-            totalScore: 0,
-            wins: 0,
-            losses: 0,
-            draws: 0,
-            winRate: 0,
-            netScore: 0
-          };
+          // 检查是否为新数据结构（包含根级别的statistics）
+          let currentStats;
+          if (currentUserData.statistics) {
+            // 新的数据结构：直接从根级别获取statistics
+            currentStats = currentUserData.statistics;
+          } else if (currentUserData.gamedata && !Array.isArray(currentUserData.gamedata) && currentUserData.gamedata.statistics) {
+            // 过渡数据结构：从gamedata对象获取statistics
+            currentStats = currentUserData.gamedata.statistics;
+          } else {
+            // 旧数据结构：从gamedata数组最后一个元素获取statistics
+            const latestGameData = currentUserData.gamedata && currentUserData.gamedata.length > 0 
+              ? currentUserData.gamedata[currentUserData.gamedata.length - 1] 
+              : {};
+            currentStats = latestGameData.statistics || {
+              totalGames: 0,
+              totalScore: 0,
+              wins: 0,
+              losses: 0,
+              draws: 0,
+              winRate: 0,
+              netScore: 0
+            };
+          }
           
           // 计算新的统计数据
           const totalGames = currentStats.totalGames + 1;
@@ -1712,6 +1766,7 @@ Page({
           const losses = currentStats.losses + (playerResult.result === '失败' ? 1 : 0);
           const draws = currentStats.draws + (playerResult.result === '平局' ? 1 : 0);
           const winRate = totalGames > 0 ? wins / totalGames : 0;
+          const netScore = totalScore; // 净胜分等于总分
           
           // 处理gamemate数据，合并对局计数
           const currentGamemates = currentUserData.gamemate || [];
@@ -1759,25 +1814,15 @@ Page({
             updatedGamematesCount: updatedGamemates.length
           });
           
-          // 创建gamedata记录，包含完整的游戏结算信息和个人统计数据
+          // 创建gamedata记录，包含游戏结算信息（不包含statistics）
           const gameDataRecord = {
-            gameId: settlementData.roomId, // 添加gameId字段，用于结算数据验证
+            // gameId: settlementData.roomId, // 移除gameId字段，不需要保存在数据库中
             roomNumber: settlementData.roomNumber,
             endTime: settlementData.settlementTime,
             rate: settlementData.rate,
             myScore: playerResult.score || 0,
             myFinalScore: playerResult.finalScore,
             myResult: playerResult.result,
-            // 个人统计数据（移动到gamedata内部）
-            statistics: {
-              totalGames: totalGames,
-              totalScore: totalScore,
-              wins: wins,
-              losses: losses,
-              draws: draws,
-              winRate: winRate,
-              netScore: totalScore // 净胜分等于总得分
-            },
             players: playerResults.map(p => ({
               openId: p.openId,
               nickName: p.nickName,
@@ -1785,22 +1830,114 @@ Page({
               finalScore: p.finalScore,
               result: p.result
             }))
-            // gamemates不再存储在gamedata内部，保持在外层
+            // 移除了statistics字段，统计数据现在存储在根级别
           };
           
-          const updateResult = await db.collection('users').doc(playerResult.openId).update({
-            data: {
-              // 移除外层的统计数据，改为在gamedata内部存储
-              gamemate: updatedGamemates, // 更新gamemate数组（包含对局计数）
-              gamedata: db.command.push(gameDataRecord), // 将游戏数据存储到gamedata结构中
-              lastActiveTime: new Date()
-            }
+          // 创建新的gamedata结构（直接使用数组）
+          let newGameData = [];
+          
+          // 检查现有数据结构类型
+          const currentGamedata = currentUserData.gamedata;
+          
+          if (!currentGamedata) {
+            // 旧用户完全没有gamedata字段
+            console.log(`🆕 旧用户无gamedata字段，创建新数组结构:`, {
+              userType: 'old_user_without_gamedata',
+              openId: playerResult.openId,
+              hasGamemate: !!currentUserData.gamemate
+            });
+            newGameData = [gameDataRecord];
+          } else if (Array.isArray(currentGamedata)) {
+            // 已有数组结构，添加新记录
+            console.log(`🔄 检测到现有数组结构，添加新记录:`, {
+              currentArrayLength: currentGamedata.length,
+              isEmptyArray: currentGamedata.length === 0
+            });
+            newGameData = [...currentGamedata, gameDataRecord];
+          } else {
+            // 旧对象结构，需要转换到数组
+            console.log(`🔄 检测到旧对象结构，转换为数组:`, {
+              currentGamedataType: typeof currentGamedata,
+              hasRecords: !!(currentGamedata && typeof currentGamedata === 'object' && !Array.isArray(currentGamedata))
+            });
+            const existingRecords = (currentGamedata && typeof currentGamedata === 'object' && !Array.isArray(currentGamedata) && Array.isArray(currentGamedata.records)) ? currentGamedata.records : [];
+            newGameData = [...existingRecords, gameDataRecord];
+          }
+          
+          console.log(`🎯 数据结构转换完成:`, {
+            from: !currentGamedata ? 'empty' : 
+                  Array.isArray(currentGamedata) ? 'existing_array' : 'old_object',
+            to: 'array',
+            recordsCount: newGameData.length
+          });
+
+          // 准备更新数据
+          console.log(`准备更新用户数据 - ${playerResult.nickName}:`, {
+            openId: playerResult.openId,
+            gamematesCount: updatedGamemates.length,
+            recordsCount: newGameData.length
           });
           
-          console.log(`用户数据更新成功:`, updateResult);
+          console.log(`🚀 开始更新数据库 - ${playerResult.nickName}:`, {
+            openId: playerResult.openId,
+            collection: 'users',
+            docId: playerResult.openId,
+            operationType: 'update',
+            gamedataRecordsLength: newGameData.length
+          });
           
-          console.log(`用户 ${playerResult.nickName} (${playerResult.openId}) 结算数据更新成功`, {
-            totalGames, totalScore, wins, losses, draws, winRate
+          let updateResult;
+          try {
+            // 先验证数据库操作
+            if (!playerResult.openId || typeof playerResult.openId !== 'string') {
+              throw new Error(`无效的用户openId: ${playerResult.openId}`);
+            }
+            
+            // 统一使用update操作更新数据库，包含统计数据
+            updateResult = await db.collection('users').doc(playerResult.openId).update({
+              data: {
+                gamemate: updatedGamemates, // 更新gamemate数组（包含对局计数）
+                gamedata: newGameData, // 将新的游戏数据数组存储到gamedata字段中
+                statistics: { // 更新根级别的统计数据
+                  totalGames,
+                  totalScore,
+                  wins,
+                  losses,
+                  draws,
+                  winRate,
+                  netScore
+                },
+                lastActiveTime: new Date()
+              }
+            });
+            
+            console.log(`✅ 数据库更新成功 - ${playerResult.nickName}:`, {
+              updateResult: updateResult,
+              recordsCount: newGameData.length
+            });
+            
+            // 验证更新结果
+            if (!updateResult) {
+              throw new Error('数据库更新返回空结果');
+            }
+            
+          } catch (updateError) {
+            console.error(`❌ 数据库更新失败 - ${playerResult.nickName}:`, {
+              openId: playerResult.openId,
+              errorCode: updateError.code,
+              errorMessage: updateError.message,
+              errorStack: updateError.stack,
+              updateDataStructure: {
+                gamemateCount: updatedGamemates ? updatedGamemates.length : 0,
+                recordsCount: newGameData.length
+              }
+            });
+            throw new Error(`用户 ${playerResult.nickName} 数据更新失败: ${updateError.message}`); // 抛出新错误
+          }
+          
+          console.log(`✅ 用户 ${playerResult.nickName} (${playerResult.openId}) 结算数据更新成功`, {
+            totalGames, totalScore, wins, losses, draws, winRate,
+            recordsCount: newGameData.length
           });
           
         } catch (playerError) {

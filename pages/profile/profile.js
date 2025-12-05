@@ -137,7 +137,16 @@ Page({
             openId: openId,
             nickName: userInfo.nickName,
             avatarUrl: userInfo.avatarUrl || '',
-            gamedata: [], // 游戏数据数组
+            gamedata: [], // 直接使用数组结构存储游戏记录
+            statistics: {
+              totalGames: 0,
+              totalScore: 0,
+              wins: 0,
+              losses: 0,
+              draws: 0,
+              winRate: 0,
+              netScore: 0
+            },
             gamemate: [], // 游戏伙伴数组
             createTime: new Date(),
             updateTime: new Date()

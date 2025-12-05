@@ -89,13 +89,9 @@ Page({
             _openid: true,
             nickName: true,
             avatarUrl: true,
-            totalGames: true,
-            totalScore: true,
-            wins: true,
-            losses: true,
-            draws: true,
-            winRate: true,
-            netScore: true
+            gamedata: true, // 包含游戏记录数据
+            statistics: true, // 包含统计数据
+            gamemate: true // 包含队友信息
           })
           .get()
 
@@ -108,7 +104,7 @@ Page({
           
           if (userData) {
             // 计算用户的统计数据
-            const userStats = this.calculateUserStats(userData.gamedata || [])
+            const userStats = this.calculateUserStats(userData.gamedata || [], userData.statistics || {})
             
             // 如果用户存在，使用真实数据
             allUsersForRanking.push({
@@ -216,9 +212,24 @@ Page({
   /**
    * 计算用户的统计数据
    * @param {Array} gamedata 用户的游戏数据数组
+   * @param {Object} statistics 用户的统计数据对象
    * @returns {Object} 统计数据对象
    */
-  calculateUserStats(gamedata) {
+  calculateUserStats(gamedata, statistics) {
+    // 优先使用顶层的statistics字段（新数据结构）
+    if (statistics && typeof statistics === 'object') {
+      return {
+        totalGames: statistics.totalGames || 0,
+        totalScore: statistics.totalScore || 0,
+        wins: statistics.wins || 0,
+        losses: statistics.losses || 0,
+        draws: statistics.draws || 0,
+        winRate: statistics.winRate || 0,
+        netScore: statistics.netScore || 0
+      }
+    }
+    
+    // 兼容旧数据结构（数组格式）
     let totalGames = 0
     let totalScore = 0
     let wins = 0
@@ -227,21 +238,13 @@ Page({
     
     // 遍历用户的所有游戏记录
     gamedata.forEach(game => {
-      // 从每个gameDataRecord的statistics中获取统计数据
-      if (game.statistics) {
-        totalGames += game.statistics.totalGames || 1
-        totalScore += game.statistics.totalScore || 0
-        wins += game.statistics.wins || 0
-        losses += game.statistics.losses || 0
-        draws += game.statistics.draws || 0
-      } else {
-        // 兼容旧数据结构
-        totalGames += 1
-        totalScore += game.myScore || 0
-        if (game.myScore > 0) wins++
-        else if (game.myScore < 0) losses++
-        else draws++
-      }
+      // 新的gamedata记录不包含statistics字段，统计数据从根级别的statistics获取
+      // 兼容更旧的数据结构（如果存在）
+      totalGames += 1
+      totalScore += game.myScore || 0
+      if (game.myScore > 0) wins++
+      else if (game.myScore < 0) losses++
+      else draws++
     })
     
     // 计算胜率

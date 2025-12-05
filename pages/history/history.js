@@ -1,12 +1,14 @@
 // history.js
 Page({
   data: {
-    historySettlements: [],
-    statistics: {
-      totalGames: 0,
-      wins: 0,
-      losses: 0,
-      totalScore: 0
+    historyData: {
+      records: [],
+      statistics: {
+        totalGames: 0,
+        wins: 0,
+        losses: 0,
+        totalScore: 0
+      }
     },
     expandedRecordIndex: -1,
     // 分页相关
@@ -49,22 +51,28 @@ Page({
           const openId = res.result.openId;
           
           // 从users集合获取当前用户的历史结算记录
-              db.collection('users').doc(openId).get()
-                .then(res => {
-                  if (!isLoadMore) {
-                    wx.hideLoading();
-                  } else {
-                    this.setData({
-                      loadingMore: false
-                    });
-                  }
-                  
-                  // 从gamedata字段获取历史结算记录
-                  const historySettlements = res.data.gamedata || [];
-                  console.log('历史结算记录原始数据:', historySettlements);
+          db.collection('users').doc(openId).get()
+            .then(res => {
+              if (!isLoadMore) {
+                wx.hideLoading();
+              } else {
+                this.setData({
+                  loadingMore: false
+                });
+              }
+              
+              // 获取gamedata数据（已经是数组格式）
+              const gameData = Array.isArray(res.data.gamedata) ? res.data.gamedata : [];
+              const records = gameData; // gamedata直接是数组
+              const statistics = res.data.statistics || {}; // 获取statistics统计信息
+              
+              console.log('历史结算记录原始数据:', {
+                totalRecords: records.length,
+                statistics: statistics
+              });
               
               // 计算总数据量
-              const totalCount = historySettlements.length;
+              const totalCount = records.length;
               
               // 根据当前页码和每页大小计算数据范围
               const { currentPage, pageSize } = this.data;
@@ -72,7 +80,7 @@ Page({
               const endIndex = startIndex + pageSize;
               
               // 获取当前页的数据
-              const currentPageData = historySettlements.slice(startIndex, endIndex);
+              const currentPageData = records.slice(startIndex, endIndex);
               
               // 判断是否还有更多数据
               const hasMoreData = endIndex < totalCount;
@@ -80,9 +88,14 @@ Page({
               if (currentPageData && currentPageData.length > 0) {
                 // 为每条记录添加_index属性和格式化时间
                 const formattedHistory = currentPageData.map((item, index) => {
-                  // 将endTime转换为可读时间，去掉换行，在一行显示
+                  // 将endTime转换为紧凑的可读时间，保留年份信息避免重叠
                   const date = new Date(item.endTime);
-                  const formattedTime = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+                  const year = String(date.getFullYear()).slice(-2); // 截取年份后两位，如"23"
+                  const month = String(date.getMonth() + 1).padStart(2, '0');
+                  const day = String(date.getDate()).padStart(2, '0');
+                  const hours = String(date.getHours()).padStart(2, '0');
+                  const minutes = String(date.getMinutes()).padStart(2, '0');
+                  const formattedTime = `${year}.${month}/${day} ${hours}:${minutes}`;
                   
                   // 格式化details数据，确保与WXML中使用的属性名一致
                   const details = (item.players || []).map(player => ({
@@ -102,26 +115,37 @@ Page({
                 
                 // 更新数据
                 const newHistorySettlements = isLoadMore ? 
-                  [...this.data.historySettlements, ...formattedHistory] : 
+                  [...this.data.historyData.records, ...formattedHistory] : 
                   formattedHistory;
                 
                 this.setData({
-                  historySettlements: newHistorySettlements,
+                  historyData: {
+                    records: newHistorySettlements,
+                    statistics: statistics // 使用数据库中的统计数据
+                  },
                   hasMoreData: hasMoreData
                 });
-
-                // 如果是首次加载，计算统计信息
+                
+                // 如果是首次加载，从数据库统计数据更新
                 if (!isLoadMore) {
-                  this.calculateStatistics(historySettlements);
+                  // 统计信息从数据库直接获取，无需重新计算
+                  this.setData({
+                    historyData: {
+                      records: newHistorySettlements,
+                      statistics: statistics
+                    }
+                  });
                 }
               } else {
-                // 如果没有历史记录，设置为空数组
+                // 如果没有历史记录，设置为空
                 if (!isLoadMore) {
                   this.setData({
-                    historySettlements: [],
+                    historyData: {
+                      records: [],
+                      statistics: statistics
+                    },
                     hasMoreData: false
                   });
-                  this.calculateStatistics([]);
                 } else {
                   this.setData({
                     hasMoreData: false
@@ -140,10 +164,17 @@ Page({
               console.error('获取用户历史记录失败', err);
               if (!isLoadMore) {
                 this.setData({
-                  historySettlements: [],
+                  historyData: {
+                    records: [],
+                    statistics: {
+                      totalGames: 0,
+                      wins: 0,
+                      losses: 0,
+                      totalScore: 0
+                    }
+                  },
                   hasMoreData: false
                 });
-                this.calculateStatistics([]);
               }
             });
         },
@@ -158,10 +189,17 @@ Page({
           console.error('获取openId失败', err);
           if (!isLoadMore) {
             this.setData({
-              historySettlements: [],
+              historyData: {
+                records: [],
+                statistics: {
+                  totalGames: 0,
+                  wins: 0,
+                  losses: 0,
+                  totalScore: 0
+                }
+              },
               hasMoreData: false
             });
-            this.calculateStatistics([]);
           }
         }
       });
@@ -177,33 +215,37 @@ Page({
       console.error('获取历史结算数据失败', e);
       if (!isLoadMore) {
         this.setData({
-          historySettlements: [],
+          historyData: {
+            records: [],
+            statistics: {
+              totalGames: 0,
+              wins: 0,
+              losses: 0,
+              totalScore: 0
+            }
+          },
           hasMoreData: false
         });
-        this.calculateStatistics([]);
       }
     }
   },
 
-  calculateStatistics: function (historySettlements) {
-    const stats = {
-      totalGames: historySettlements.length,
-      wins: 0,
-      losses: 0,
-      totalScore: 0
-    };
-
-    historySettlements.forEach(settlement => {
-      if (settlement.myResult === '胜利') {
-        stats.wins++;
-      } else if (settlement.myResult === '失败') {
-        stats.losses++;
-      }
-      stats.totalScore += settlement.myScore || 0;
-    });
-
+  /**
+   * 重置分页数据
+   */
+  resetPageData: function () {
     this.setData({
-      statistics: stats
+      currentPage: 0,
+      hasMoreData: true,
+      historyData: {
+        records: [],
+        statistics: {
+          totalGames: 0,
+          wins: 0,
+          losses: 0,
+          totalScore: 0
+        }
+      }
     });
   },
 
@@ -227,16 +269,5 @@ Page({
       });
       this.loadHistoryData(true);
     }
-  },
-
-  /**
-   * 重置分页数据
-   */
-  resetPageData: function () {
-    this.setData({
-      currentPage: 0,
-      hasMoreData: true,
-      historySettlements: []
-    });
   }
 });

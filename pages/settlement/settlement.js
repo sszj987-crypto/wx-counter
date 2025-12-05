@@ -8,7 +8,8 @@ Page({
     players: [],
     rate: 1,
     roomClosed: false,
-    isCreatingNewRoom: false
+    isCreatingNewRoom: false,
+    settlementTime: '' // 结算时间，用于验证
   },
 
   async onLoad(options) {
@@ -109,7 +110,8 @@ Page({
         roomId: roomId || '',
         roomNumber: roomNumber || '',
         players: playersWithRateScore,
-        rate: rate || 1
+        rate: rate || 1,
+        settlementTime: new Date().toISOString() // 设置结算时间用于验证
       });
       
       // 验证结算数据是否正确保存到数据库
@@ -233,7 +235,8 @@ Page({
           roomNumber: roomNumber || '',
           players: playersWithRateScore,
           rate: rate || 1,
-          roomClosed: true // 标记房间已关闭
+          roomClosed: true, // 标记房间已关闭
+          settlementTime: roomData.closeTime ? new Date(roomData.closeTime).toISOString() : new Date().toISOString()
         });
         
         console.log('已结算房间数据加载成功');
@@ -495,69 +498,192 @@ Page({
   async validateSettlementData() {
     try {
       console.log('=== 开始验证结算数据保存 ===');
+      console.log('当前房间ID:', this.data.roomId);
+      console.log('当前房间编号:', this.data.roomNumber);
       
       if (!this.data.roomId) {
-        console.log('没有房间ID，跳过数据验证');
+        console.log('❌ 没有房间ID，跳过数据验证');
         return;
       }
       
       // 获取当前用户openId
-      const { result: userInfoResult } = await wx.cloud.callFunction({
-        name: 'getOpenId'
-      });
-      const openId = userInfoResult.openId;
+      let openId;
+      try {
+        const { result: userInfoResult } = await wx.cloud.callFunction({
+          name: 'getOpenId'
+        });
+        openId = userInfoResult.openId;
+        console.log('✅ 获取到用户openId:', openId);
+      } catch (openIdError) {
+        console.error('❌ 获取用户openId失败:', openIdError);
+        wx.showToast({
+          title: '获取用户信息失败',
+          icon: 'error',
+          duration: 2000
+        });
+        return;
+      }
       
-      console.log(`验证用户 ${openId} 的结算数据是否保存成功`);
+      console.log(`🔍 验证用户 ${openId} 的结算数据是否保存成功`);
       
       // 验证用户数据是否包含最新的结算记录
-      const userDoc = await db.collection('users').doc(openId).get();
-      const userData = userDoc.data || {};
-      
-      // 从gamedata字段获取历史结算记录
-      const gamedata = userData.gamedata || [];
-      console.log(`用户历史结算记录数: ${gamedata.length}`);
-      
-      if (gamedata.length > 0) {
-        // 检查最新记录是否是当前房间的
-        const latestRecord = gamedata[gamedata.length - 1];
-        console.log('最新结算记录:', {
-          gameId: latestRecord.gameId,
-          roomNumber: latestRecord.roomNumber,
-          endTime: latestRecord.endTime,
-          myScore: latestRecord.myScore,
-          myResult: latestRecord.myResult
+      let userDoc;
+      try {
+        userDoc = await db.collection('users').doc(openId).get();
+        console.log('✅ 成功获取用户文档:', userDoc.data ? '有数据' : '无数据');
+      } catch (getUserError) {
+        console.error('❌ 获取用户文档失败:', getUserError);
+        wx.showToast({
+          title: '获取用户数据失败',
+          icon: 'error',
+          duration: 2000
         });
+        return;
+      }
+      
+      const userData = userDoc.data || {};
+      console.log('📊 用户数据结构分析:', {
+        hasUserData: !!userData,
+        hasGamedata: !!userData.gamedata,
+        gamedataType: typeof userData.gamedata,
+        isArray: Array.isArray(userData.gamedata),
+        hasRecords: userData.gamedata && typeof userData.gamedata === 'object' && !!userData.gamedata.records,
+        hasStatistics: !!userData.statistics // 新的数据结构：statistics在根级别
+      });
+      
+      // 兼容新旧数据结构
+      let gamedata = [];
+      let latestRecord = null;
+      let dataStructure = 'unknown';
+      
+      console.log('🔍 详细数据结构分析:', {
+        gamedataValue: userData.gamedata,
+        gamedataType: typeof userData.gamedata,
+        isArray: Array.isArray(userData.gamedata)
+      });
+      
+      // 检查数据结构：优先检查数组格式
+      if (Array.isArray(userData.gamedata)) {
+        console.log('🔄 使用数组结构');
+        dataStructure = 'array';
+        gamedata = userData.gamedata;
+        console.log(`📈 用户历史结算记录数: ${gamedata.length}`);
         
-        if (latestRecord.gameId === this.data.roomId) {
-          console.log('✅ 结算数据验证成功！最新记录匹配当前房间');
-          wx.showToast({
-            title: '数据保存成功',
-            icon: 'success',
-            duration: 1500
+        if (gamedata.length > 0) {
+          latestRecord = gamedata[gamedata.length - 1];
+          console.log('🆕 最新记录详细信息:', latestRecord);
+        }
+      } else {
+        console.log('❌ 数据结构为空或无效');
+        console.log('🔍 详细数据结构:', userData.gamedata);
+      }
+      
+      if (latestRecord) {
+        // 验证最新记录是否匹配当前房间（通过roomNumber和时间）
+        // 对于时间验证，允许一定误差（因为页面加载和实际保存有时间差）
+        const roomNumberMatch = latestRecord.roomNumber === this.data.roomNumber;
+        let timeMatch = false;
+        
+        if (this.data.settlementTime && latestRecord.endTime) {
+          // 将时间转换为毫秒数字进行比较，允许3秒误差
+          const expectedTime = new Date(this.data.settlementTime).getTime();
+          const actualTime = new Date(latestRecord.endTime).getTime();
+          const timeDiff = Math.abs(expectedTime - actualTime);
+          timeMatch = timeDiff <= 3000; // 允许3秒误差
+          
+          console.log('⏰ 时间验证详情:', {
+            expectedTime: this.data.settlementTime,
+            actualTime: latestRecord.endTime,
+            timeDiff: timeDiff,
+            timeMatch: timeMatch
           });
         } else {
-          console.log('❌ 结算数据验证失败！最新记录不匹配当前房间');
+          console.log('⚠️ 时间数据缺失，跳过时间验证');
+          // 如果没有时间数据，只验证房间编号
+          timeMatch = true;
+        }
+        
+        const isMatch = roomNumberMatch && timeMatch;
+        console.log('🧪 数据验证结果:', {
+          expectedRoomNumber: this.data.roomNumber,
+          expectedEndTime: this.data.settlementTime,
+          actualRoomNumber: latestRecord.roomNumber,
+          actualEndTime: latestRecord.endTime,
+          roomNumberMatch: roomNumberMatch,
+          timeMatch: timeMatch,
+          isMatch: isMatch,
+          dataStructure: dataStructure
+        });
+        
+        if (isMatch) {
+          console.log('✅ 结算数据验证成功！最新记录匹配当前房间');
+          console.log('🎉 结算数据保存和验证全部完成！');
+          
           wx.showToast({
-            title: '数据保存异常',
-            icon: 'error',
+            title: '✅ 数据保存成功',
+            icon: 'success',
             duration: 2000
+          });
+          
+          // 显示成功统计信息
+          const successMessage = `🏆 结算完成！记录数: ${gamedata.length}`;
+          setTimeout(() => {
+            wx.showToast({
+              title: successMessage,
+              icon: 'none',
+              duration: 3000
+            });
+          }, 1500);
+          
+        } else {
+          console.log('❌ 结算数据验证失败！最新记录不匹配当前房间');
+          console.log('🔍 验证详情:', {
+            expectedRoomNumber: this.data.roomNumber,
+            actualRoomNumber: latestRecord.roomNumber,
+            expectedEndTime: this.data.settlementTime,
+            actualEndTime: latestRecord.endTime,
+            dataStructure: dataStructure,
+            roomNumberMatch: roomNumberMatch,
+            timeMatch: timeMatch
+          });
+          
+          wx.showToast({
+            title: `⚠️ 数据保存异常（房间ID不匹配）`,
+            icon: 'error',
+            duration: 3000
           });
         }
       } else {
         console.log('❌ 结算数据验证失败！没有找到历史结算记录');
+        console.log('🔍 详细信息:', {
+          userHasGamedata: !!userData.gamedata,
+          gamedataType: typeof userData.gamedata,
+          dataStructure: dataStructure,
+          recordsCount: gamedata.length
+        });
+        
         wx.showToast({
-          title: '数据保存失败',
+          title: '❌ 数据保存失败（无记录）',
           icon: 'error',
-          duration: 2000
+          duration: 3000
         });
       }
       
     } catch (error) {
-      console.error('=== 验证结算数据时出错 ===', error);
+      console.error('❌ === 验证结算数据时出错 ===', error);
+      
+      // 详细的错误信息
+      let errorMessage = '数据验证失败';
+      if (error.errCode) {
+        errorMessage += ` (${error.errCode})`;
+      } else if (error.message) {
+        errorMessage += `: ${error.message}`;
+      }
+      
       wx.showToast({
-        title: '数据验证失败',
+        title: errorMessage,
         icon: 'none',
-        duration: 2000
+        duration: 3000
       });
     }
   },

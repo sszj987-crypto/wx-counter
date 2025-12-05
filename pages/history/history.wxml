@@ -8,19 +8,19 @@
     <view class="stats-container">
     <view class="stat-item">
       <text class="stat-label">总局数</text>
-      <text class="stat-value">{{statistics.totalGames}}</text>
+      <text class="stat-value">{{historyData.statistics.totalGames}}</text>
     </view>
     <view class="stat-item">
       <text class="stat-label">胜利</text>
-      <text class="stat-value">{{statistics.wins}}</text>
+      <text class="stat-value">{{historyData.statistics.wins}}</text>
     </view>
     <view class="stat-item">
       <text class="stat-label">失败</text>
-      <text class="stat-value">{{statistics.losses}}</text>
+      <text class="stat-value">{{historyData.statistics.losses}}</text>
     </view>
     <view class="stat-item">
       <text class="stat-label">总得分</text>
-      <text class="stat-value">{{statistics.totalScore}}</text>
+      <text class="stat-value">{{historyData.statistics.totalScore}}</text>
     </view>
   </view>
   
@@ -36,7 +36,7 @@
 
   <scroll-view class="history-list" scroll-y bindscrolltolower="loadMoreData" lower-threshold="100">
     <!-- 记录列表 -->
-    <view class="history-item" wx:for="{{historySettlements}}" wx:key="_index">
+    <view class="history-item" wx:for="{{historyData.records}}" wx:key="_index">
       <!-- 记录行 -->
       <view class="record-row" bindtap="toggleRecordDetail" data-index="{{index}}">
         <view class="game-time">
@@ -71,7 +71,7 @@
     </view>
     
     <!-- 空状态 -->
-    <view class="empty-state" wx:if="{{historySettlements.length === 0}}">
+    <view class="empty-state" wx:if="{{historyData.records.length === 0}}">
       <text>暂无历史记录</text>
     </view>
     
