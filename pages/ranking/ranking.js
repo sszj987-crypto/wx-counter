@@ -53,20 +53,23 @@ Page({
       // 如果没有任何gamemate数据，至少显示当前用户自己
       const allUsersForRanking = []
       
+      // 计算当前用户的统计数据
+      const currentUserStats = this.calculateUserStats(currentUserData.gamedata || [])
+      
       // 首先添加当前用户自己
       allUsersForRanking.push({
         openId: currentOpenId,
         isCurrentUser: true, // 标记为当前用户
         nickName: currentUserData.nickName || '我',
         avatarUrl: currentUserData.avatarUrl || '/images/default-avatar.png',
-        totalGames: currentUserData.totalGames || 0,
-        totalScore: currentUserData.totalScore || 0,
-        wins: currentUserData.wins || 0,
-        losses: currentUserData.losses || 0,
-        draws: currentUserData.draws || 0,
-        winRate: currentUserData.winRate || 0,
-        winRateDisplay: ((currentUserData.winRate || 0) * 100).toFixed(1) + '%',
-        netScore: currentUserData.netScore || 0,
+        totalGames: currentUserStats.totalGames,
+        totalScore: currentUserStats.totalScore,
+        wins: currentUserStats.wins,
+        losses: currentUserStats.losses,
+        draws: currentUserStats.draws,
+        winRate: currentUserStats.winRate,
+        winRateDisplay: ((currentUserStats.winRate) * 100).toFixed(1) + '%',
+        netScore: currentUserStats.netScore,
         gameCount: 0, // 自己与自己不对局
         hasData: !!currentUserData.nickName // 标记是否有真实数据
       })
@@ -104,20 +107,23 @@ Page({
           const userData = result.data.find(u => u._openid === gamemate.openId)
           
           if (userData) {
+            // 计算用户的统计数据
+            const userStats = this.calculateUserStats(userData.gamedata || [])
+            
             // 如果用户存在，使用真实数据
             allUsersForRanking.push({
               openId: gamemate.openId,
               isCurrentUser: false,
               nickName: userData.nickName || '玩家',
               avatarUrl: userData.avatarUrl || '/images/default-avatar.png',
-              totalGames: userData.totalGames || 0,
-              totalScore: userData.totalScore || 0,
-              wins: userData.wins || 0,
-              losses: userData.losses || 0,
-              draws: userData.draws || 0,
-              winRate: userData.winRate || 0,
-              winRateDisplay: ((userData.winRate || 0) * 100).toFixed(1) + '%',
-              netScore: userData.netScore || 0,
+              totalGames: userStats.totalGames,
+              totalScore: userStats.totalScore,
+              wins: userStats.wins,
+              losses: userStats.losses,
+              draws: userStats.draws,
+              winRate: userStats.winRate,
+              winRateDisplay: ((userStats.winRate) * 100).toFixed(1) + '%',
+              netScore: userStats.netScore,
               gameCount: gamemate.gameCount || 0,
               hasData: true
             })
@@ -204,6 +210,53 @@ Page({
       title: '查看可乐计分器排行榜',
       path: '/pages/ranking/ranking',
       imageUrl: '/images/小程序码.jpg'
+    }
+  },
+
+  /**
+   * 计算用户的统计数据
+   * @param {Array} gamedata 用户的游戏数据数组
+   * @returns {Object} 统计数据对象
+   */
+  calculateUserStats(gamedata) {
+    let totalGames = 0
+    let totalScore = 0
+    let wins = 0
+    let losses = 0
+    let draws = 0
+    
+    // 遍历用户的所有游戏记录
+    gamedata.forEach(game => {
+      // 从每个gameDataRecord的statistics中获取统计数据
+      if (game.statistics) {
+        totalGames += game.statistics.totalGames || 1
+        totalScore += game.statistics.totalScore || 0
+        wins += game.statistics.wins || 0
+        losses += game.statistics.losses || 0
+        draws += game.statistics.draws || 0
+      } else {
+        // 兼容旧数据结构
+        totalGames += 1
+        totalScore += game.myScore || 0
+        if (game.myScore > 0) wins++
+        else if (game.myScore < 0) losses++
+        else draws++
+      }
+    })
+    
+    // 计算胜率
+    const winRate = totalGames > 0 ? wins / totalGames : 0
+    // 计算净胜分
+    const netScore = totalScore
+    
+    return {
+      totalGames,
+      totalScore,
+      wins,
+      losses,
+      draws,
+      winRate,
+      netScore
     }
   },
 

@@ -297,9 +297,8 @@ Page({
         _id: openId, // 使用openId作为文档ID
         nickName: userInfo.nickName || '玩家',
         avatarUrl: userInfo.avatarUrl || '/images/default-avatar.png',
-        totalGames: 0,
-        totalScore: 0,
-        winRate: 0,
+        gamedata: [], // 游戏数据数组
+        gamemate: [], // 游戏伙伴数组
         createTime: new Date(),
         updateTime: new Date(),
         lastLoginTime: new Date(),

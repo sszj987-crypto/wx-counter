@@ -49,17 +49,19 @@ Page({
           const openId = res.result.openId;
           
           // 从users集合获取当前用户的历史结算记录
-          db.collection('users').doc(openId).get()
-            .then(res => {
-              if (!isLoadMore) {
-                wx.hideLoading();
-              } else {
-                this.setData({
-                  loadingMore: false
-                });
-              }
-              
-              const historySettlements = res.data.historySettlements || [];
+              db.collection('users').doc(openId).get()
+                .then(res => {
+                  if (!isLoadMore) {
+                    wx.hideLoading();
+                  } else {
+                    this.setData({
+                      loadingMore: false
+                    });
+                  }
+                  
+                  // 从gamedata字段获取历史结算记录
+                  const historySettlements = res.data.gamedata || [];
+                  console.log('历史结算记录原始数据:', historySettlements);
               
               // 计算总数据量
               const totalCount = historySettlements.length;
@@ -78,25 +80,17 @@ Page({
               if (currentPageData && currentPageData.length > 0) {
                 // 为每条记录添加_index属性和格式化时间
                 const formattedHistory = currentPageData.map((item, index) => {
-                  // 将settlementTime转换为可读时间
-                  const date = new Date(item.settlementTime);
+                  // 将endTime转换为可读时间
+                  const date = new Date(item.endTime);
                   const formattedTime = `${date.getMonth() + 1}月${date.getDate()}日 ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
                   
                   // 格式化details数据，确保与WXML中使用的属性名一致
-                  const details = (item.gamemates || []).map(gamemate => ({
-                    playerId: gamemate.nickName, // 使用nickName作为临时的playerId
-                    nickname: gamemate.nickName,
+                  const details = (item.players || []).map(player => ({
+                    playerId: player.nickName, // 使用nickName作为临时的playerId
+                    nickname: player.nickName,
                     avatar: '/images/default-avatar.png', // 使用默认头像
-                    score: gamemate.score
+                    score: player.score
                   }));
-                  
-                  // 添加当前用户到details列表
-                  details.unshift({
-                    playerId: 'me',
-                    nickname: '我', // 使用默认昵称，可后续替换为真实用户昵称
-                    avatar: '/images/default-avatar.png',
-                    score: item.myScore
-                  });
                   
                   return {
                     ...item,

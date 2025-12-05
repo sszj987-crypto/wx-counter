@@ -306,21 +306,22 @@ Page({
       const userDoc = await db.collection('users').doc(openId).get();
       const userData = userDoc.data || {};
       
-      const historySettlements = userData.historySettlements || [];
-      console.log(`用户历史结算记录数: ${historySettlements.length}`);
+      // 从gamedata字段获取历史结算记录
+      const gamedata = userData.gamedata || [];
+      console.log(`用户历史结算记录数: ${gamedata.length}`);
       
-      if (historySettlements.length > 0) {
+      if (gamedata.length > 0) {
         // 检查最新记录是否是当前房间的
-        const latestRecord = historySettlements[historySettlements.length - 1];
+        const latestRecord = gamedata[gamedata.length - 1];
         console.log('最新结算记录:', {
-          roomId: latestRecord.roomId,
+          gameId: latestRecord.gameId,
           roomNumber: latestRecord.roomNumber,
-          settlementTime: latestRecord.settlementTime,
+          endTime: latestRecord.endTime,
           myScore: latestRecord.myScore,
           myResult: latestRecord.myResult
         });
         
-        if (latestRecord.roomId === this.data.roomId) {
+        if (latestRecord.gameId === this.data.roomId) {
           console.log('✅ 结算数据验证成功！最新记录匹配当前房间');
           wx.showToast({
             title: '数据保存成功',

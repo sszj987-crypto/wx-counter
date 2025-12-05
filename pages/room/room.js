@@ -296,28 +296,28 @@ Page({
       console.log('开始更新用户信息');
       try {
         await wx.cloud.database().collection('users').doc(openId).set({
-          data: {
-            openId: openId,
-            nickName: this.data.userInfo.nickName || '用户',
-            avatarUrl: this.data.userInfo.avatarUrl || '',
-            totalGames: 0,
-            totalScore: 0,
-            lastActiveTime: new Date()
-          }
-        });
-        console.log('用户信息更新成功');
-      } catch (error) {
-        console.log('用户信息更新失败，尝试创建新用户:', error);
-        // 如果用户不存在则创建
-        await wx.cloud.database().collection('users').add({
-          data: {
-            _id: openId,
-            openId: openId,
-            nickName: this.data.userInfo.nickName || '用户',
-            avatarUrl: this.data.userInfo.avatarUrl || '',
-            totalGames: 0,
-            totalScore: 0,
-            lastActiveTime: new Date()
+            data: {
+              openId: openId,
+              nickName: this.data.userInfo.nickName || '用户',
+              avatarUrl: this.data.userInfo.avatarUrl || '',
+              gamemate: [],
+              gamedata: [],
+              lastActiveTime: new Date()
+            }
+          });
+          console.log('用户信息更新成功');
+        } catch (error) {
+          console.log('用户信息更新失败，尝试创建新用户:', error);
+          // 如果用户不存在则创建
+          await wx.cloud.database().collection('users').add({
+            data: {
+              _id: openId,
+              openId: openId,
+              nickName: this.data.userInfo.nickName || '用户',
+              avatarUrl: this.data.userInfo.avatarUrl || '',
+              gamemate: [],
+              gamedata: [],
+              lastActiveTime: new Date()
           }
         });
         console.log('新用户创建成功');
@@ -542,8 +542,8 @@ Page({
             openId: openId,
             nickName: userInfo.nickName || '用户',
             avatarUrl: userInfo.avatarUrl || '/images/default-avatar.png',
-            totalGames: 0,
-            totalScore: 0,
+            gamemate: [],
+            gamedata: [],
             lastActiveTime: new Date()
           }
         });
@@ -555,8 +555,8 @@ Page({
             openId: openId,
             nickName: userInfo.nickName || '用户',
             avatarUrl: userInfo.avatarUrl || '/images/default-avatar.png',
-            totalGames: 0,
-            totalScore: 0,
+            gamemate: [],
+            gamedata: [],
             lastActiveTime: new Date()
           }
         });
@@ -1533,10 +1533,14 @@ Page({
           try {
             const userDoc = await db.collection('users').doc(playerResult.openId).get();
             currentUserData = userDoc.data || {};
+            // 从gamedata获取最新统计数据
+            const latestGameData = currentUserData.gamedata && currentUserData.gamedata.length > 0 
+              ? currentUserData.gamedata[currentUserData.gamedata.length - 1] 
+              : {};
             console.log(`用户数据获取成功，当前数据:`, {
-              totalGames: currentUserData.totalGames || 0,
-              totalScore: currentUserData.totalScore || 0,
-              winRate: currentUserData.winRate || 0
+              totalGames: latestGameData.statistics?.totalGames || 0,
+              totalScore: latestGameData.statistics?.totalScore || 0,
+              winRate: latestGameData.statistics?.winRate || 0
             });
           } catch (userError) {
             console.log(`用户 ${playerResult.nickName} (${playerResult.openId}) 不存在，创建新用户记录`);
@@ -1547,15 +1551,8 @@ Page({
               openId: playerResult.openId,
               nickName: playerResult.nickName || '玩家',
               avatarUrl: '', // 可以后续从其他地方获取
-              totalGames: 0,
-              totalScore: 0,
-              wins: 0,
-              losses: 0,
-              draws: 0,
-              winRate: 0,
-              netScore: 0,
               gamemate: [],
-              historySettlements: [],
+              gamedata: [], // 初始化gamedata数组
               lastActiveTime: new Date(),
               createdAt: new Date(),
               fromDatabase: true // 标记为来自数据库
@@ -1577,15 +1574,32 @@ Page({
             currentUserData = newUserData;
           }
           
-          // 计算更新后的数据
-          const totalGames = (currentUserData.totalGames || 0) + 1;
-          const totalScore = (currentUserData.totalScore || 0) + playerResult.finalScore;
+          // 计算更新后的统计数据
+          // 从gamedata获取最新统计信息
+          const latestGameData = currentUserData.gamedata && currentUserData.gamedata.length > 0 
+            ? currentUserData.gamedata[currentUserData.gamedata.length - 1] 
+            : {};
+          
+          // 获取当前统计数据
+          const currentStats = latestGameData.statistics || {
+            totalGames: 0,
+            totalScore: 0,
+            wins: 0,
+            losses: 0,
+            draws: 0,
+            winRate: 0,
+            netScore: 0
+          };
+          
+          // 计算新的统计数据
+          const totalGames = currentStats.totalGames + 1;
+          const totalScore = currentStats.totalScore + playerResult.finalScore;
           
           // 统计胜负平数据
-          const wins = (currentUserData.wins || 0) + (playerResult.result === '胜利' ? 1 : 0);
-          const losses = (currentUserData.losses || 0) + (playerResult.result === '失败' ? 1 : 0);
-          const draws = (currentUserData.draws || 0) + (playerResult.result === '平局' ? 1 : 0);
-          const winRate = wins / totalGames;
+          const wins = currentStats.wins + (playerResult.result === '胜利' ? 1 : 0);
+          const losses = currentStats.losses + (playerResult.result === '失败' ? 1 : 0);
+          const draws = currentStats.draws + (playerResult.result === '平局' ? 1 : 0);
+          const winRate = totalGames > 0 ? wins / totalGames : 0;
           
           // 处理gamemate数据，合并对局计数
           const currentGamemates = currentUserData.gamemate || [];
@@ -1629,21 +1643,43 @@ Page({
           // 更新用户数据
           console.log(`准备更新用户数据:`, {
             totalGames, totalScore, wins, losses, draws, winRate,
-            historyRecordCount: (currentUserData.historySettlements || []).length,
+            gamedataRecordCount: (currentUserData.gamedata || []).length,
             updatedGamematesCount: updatedGamemates.length
           });
           
-          const updateResult = await db.collection('users').doc(playerResult.openId).update({
-            data: {
+          // 创建gamedata记录，包含完整的游戏结算信息和个人统计数据
+          const gameDataRecord = {
+            roomNumber: settlementData.roomNumber,
+            endTime: settlementData.settlementTime,
+            rate: settlementData.rate,
+            myScore: playerResult.score || 0,
+            myFinalScore: playerResult.finalScore,
+            myResult: playerResult.result,
+            // 个人统计数据（移动到gamedata内部）
+            statistics: {
               totalGames: totalGames,
               totalScore: totalScore,
               wins: wins,
               losses: losses,
               draws: draws,
               winRate: winRate,
-              netScore: totalScore, // 净胜分等于总得分
+              netScore: totalScore // 净胜分等于总得分
+            },
+            players: playerResults.map(p => ({
+              openId: p.openId,
+              nickName: p.nickName,
+              score: p.score || 0,
+              finalScore: p.finalScore,
+              result: p.result
+            }))
+            // gamemates不再存储在gamedata内部，保持在外层
+          };
+          
+          const updateResult = await db.collection('users').doc(playerResult.openId).update({
+            data: {
+              // 移除外层的统计数据，改为在gamedata内部存储
               gamemate: updatedGamemates, // 更新gamemate数组（包含对局计数）
-              historySettlements: db.command.push(settlementRecord), // 添加历史结算记录
+              gamedata: db.command.push(gameDataRecord), // 将游戏数据存储到gamedata结构中
               lastActiveTime: new Date()
             }
           });
