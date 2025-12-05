@@ -13,7 +13,7 @@
   </view>
 
   <!-- 排行榜列表 -->
-  <view class="ranking-list">
+  <scroll-view class="ranking-list" scroll-y>
     <view class="ranking-item {{index < 3 ? 'top-' + (index + 1) : ''}}" wx:for="{{rankingList}}" wx:key="openId">
       <!-- 排名 -->
       <view class="rank-number">
@@ -48,10 +48,10 @@
         </block>
       </view>
     </view>
-  </view>
-
-  <!-- 空状态 -->
-  <view class="empty-state" wx:if="{{rankingList.length === 0}}">
-    <text class="empty-text">暂无排行榜数据</text>
-  </view>
+    
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{rankingList.length === 0}}">
+      <text class="empty-text">暂无排行榜数据</text>
+    </view>
+  </scroll-view>
 </view>

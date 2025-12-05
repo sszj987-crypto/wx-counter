@@ -25,7 +25,7 @@
   </view>
   
   <!-- 历史记录列表 -->
-  <view class="history-list">
+  <scroll-view class="history-list" scroll-y bindscrolltolower="loadMoreData" lower-threshold="100">
     <!-- 表头 -->
     <view class="history-header">
       <view class="header-item">时间</view>
@@ -74,6 +74,11 @@
     <view class="empty-state" wx:if="{{historySettlements.length === 0}}">
       <text>暂无历史记录</text>
     </view>
-  </view>
+    
+    <!-- 加载更多指示器 -->
+    <view class="load-more" wx:if="{{loadingMore}}">
+      <text>加载中...</text>
+    </view>
+  </scroll-view>
   </view>
 </view>

@@ -57,6 +57,7 @@ page {
   border: 1rpx solid #ddd;
   border-radius: 10rpx;
   overflow: hidden;
+  height: calc(100vh - 260rpx); /* 设置scroll-view的高度，确保能滚动 */
 }
 
 .history-header {
