@@ -413,7 +413,8 @@ Page({
                   roomId: inactiveRoomResult.data._id,
                   roomNumber: inactiveRoomResult.data.roomNumber,
                   players: inactiveRoomResult.data.players,
-                  rate: 1 // 默认倍率
+                  rate: 1, // 默认倍率
+                  settlementTime: inactiveRoomResult.data.settlementTime
                 }))}`
               });
               return;
@@ -438,7 +439,8 @@ Page({
             roomId: room._id,
             roomNumber: room.roomNumber,
             players: room.players,
-            rate: 1 // 默认倍率
+            rate: 1, // 默认倍率
+            settlementTime: room.settlementTime
           }))}`
         });
         return;
@@ -595,7 +597,8 @@ Page({
                 roomId: inactiveRoomResult.data._id,
                 roomNumber: inactiveRoomResult.data.roomNumber,
                 players: inactiveRoomResult.data.players,
-                rate: 1 // 默认倍率
+                rate: 1, // 默认倍率
+                settlementTime: inactiveRoomResult.data.settlementTime
               }))}`
             });
             return;
@@ -910,7 +913,8 @@ Page({
                 roomId: roomData._id,
                 roomNumber: roomData.roomNumber,
                 players: roomData.players,
-                rate: 1 // 默认倍率
+                rate: 1, // 默认倍率
+                settlementTime: roomData.settlementTime
               }))}`
             });
             return;
@@ -977,7 +981,8 @@ Page({
                       roomId: roomResult.data._id,
                       roomNumber: roomResult.data.roomNumber,
                       players: roomResult.data.players,
-                      rate: 1 // 默认倍率
+                      rate: 1, // 默认倍率
+                      settlementTime: roomResult.data.settlementTime
                     }))}`
                   });
                   return true;
@@ -1490,7 +1495,8 @@ Page({
             roomId: settlementData.roomId,
             roomName: settlementData.roomName,
             players: settlementData.players,
-            rate: settlementData.rate
+            rate: settlementData.rate,
+            settlementTime: settlementData.settlementTime // 传递结算时间用于验证
           }))}`,
           success: () => {
             // 移除立即删除房间的逻辑，改为在room页面onShow时检查是否需要删除
@@ -1503,7 +1509,8 @@ Page({
                 roomId: settlementData.roomId,
                 roomName: settlementData.roomName,
                 players: settlementData.players,
-                rate: settlementData.rate
+                rate: settlementData.rate,
+                settlementTime: settlementData.settlementTime // 传递结算时间用于验证
               }))}`,
               success: () => {
                 // 移除立即删除房间的逻辑

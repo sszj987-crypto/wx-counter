@@ -34,7 +34,7 @@ Page({
     try {
       const decodedData = decodeURIComponent(options.data || '');
       const data = JSON.parse(decodedData || '{}');
-      let { roomId, roomNumber, players, rate } = data;
+      let { roomId, roomNumber, players, rate, settlementTime } = data;
     
       if (!players || !Array.isArray(players)) {
         // 如果没有完整的结算数据，但有roomId，尝试从数据库加载已结算房间的数据
@@ -106,7 +106,7 @@ Page({
         roomNumber: roomNumber || '',
         players: playersWithRateScore,
         rate: rate || 1,
-        settlementTime: new Date().toISOString() // 设置结算时间用于验证
+        settlementTime: settlementTime || new Date().toISOString() // 设置结算时间用于验证
       });
       
       // 验证结算数据是否正确保存到数据库
@@ -566,6 +566,16 @@ Page({
           }, 1500);
           
         } else {
+          console.warn('结算数据验证失败:', {
+            roomNumberMatch,
+            timeMatch,
+            expectedTime: this.data.settlementTime,
+            actualTime: latestRecord.endTime,
+            expectedRoomNumber: this.data.roomNumber,
+            actualRoomNumber: latestRecord.roomNumber,
+            timeDiff: this.data.settlementTime && latestRecord.endTime ? 
+              Math.abs(new Date(this.data.settlementTime).getTime() - new Date(latestRecord.endTime).getTime()) : 'N/A'
+          });
           
           wx.showToast({
             title: `⚠️ 数据保存异常（房间ID不匹配）`,
