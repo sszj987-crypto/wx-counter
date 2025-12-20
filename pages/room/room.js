@@ -280,13 +280,10 @@ Page({
 
       // 更新用户信息
       try {
-        await wx.cloud.database().collection('users').doc(openId).set({
+        await wx.cloud.database().collection('users').doc(openId).update({
             data: {
-              openId: openId,
               nickName: this.data.userInfo.nickName || '用户',
               avatarUrl: this.data.userInfo.avatarUrl || '',
-              gamemate: [],
-              gamedata: [],
               lastActiveTime: new Date()
             }
           });
@@ -517,13 +514,10 @@ Page({
 
       // 更新用户信息到数据库
       try {
-        await wx.cloud.database().collection('users').doc(openId).set({
+        await wx.cloud.database().collection('users').doc(openId).update({
           data: {
-            openId: openId,
             nickName: userInfo.nickName || '用户',
             avatarUrl: userInfo.avatarUrl || '/images/default-avatar.png',
-            gamemate: [],
-            gamedata: [],
             lastActiveTime: new Date()
           }
         });
@@ -1592,9 +1586,11 @@ Page({
         }
         
         try {
-          // 获取同房间其他玩家的openid（排除当前玩家）
+          // 获取同房间其他玩家的openid（排除当前玩家和茶位/茶水玩家）
           const gamemates = playerResults
-            .filter(p => p.openId !== playerResult.openId)
+            .filter(p => p.openId !== playerResult.openId && 
+                       p.nickName !== '台位/茶水' && 
+                       !p.openId.startsWith('tea_service_'))
             .map(p => ({
               openId: p.openId,
               gameCount: 1 // 新增对局计数字段
@@ -1725,7 +1721,9 @@ Page({
             myResult: playerResult.result,
             // 同局人信息
             gamemates: playerResults
-              .filter(p => p.openId !== playerResult.openId)
+              .filter(p => p.openId !== playerResult.openId && 
+                         p.nickName !== '台位/茶水' && 
+                         !p.openId.startsWith('tea_service_'))
               .map(p => ({
                 nickName: p.nickName,
                 score: p.score || 0,
@@ -1743,13 +1741,14 @@ Page({
             myScore: playerResult.score || 0,
             myFinalScore: playerResult.finalScore,
             myResult: playerResult.result,
-            players: playerResults.map(p => ({
-              openId: p.openId,
-              nickName: p.nickName,
-              score: p.score || 0,
-              finalScore: p.finalScore,
-              result: p.result
-            }))
+            players: playerResults
+              .map(p => ({
+                openId: p.openId,
+                nickName: p.nickName,
+                score: p.score || 0,
+                finalScore: p.finalScore,
+                result: p.result
+              }))
             // 移除了statistics字段，统计数据现在存储在根级别
           };
           
@@ -1767,7 +1766,17 @@ Page({
             newGameData = [...currentGamedata, gameDataRecord];
           } else {
             // 旧对象结构，需要转换到数组
-            const existingRecords = (currentGamedata && typeof currentGamedata === 'object' && !Array.isArray(currentGamedata) && Array.isArray(currentGamedata.records)) ? currentGamedata.records : [];
+            let existingRecords = [];
+            if (currentGamedata && typeof currentGamedata === 'object' && !Array.isArray(currentGamedata)) {
+              if (Array.isArray(currentGamedata.records)) {
+                // 旧对象结构，包含records数组
+                existingRecords = currentGamedata.records;
+              } else {
+                // 旧对象结构，不包含records数组，可能是单个游戏记录对象
+                // 保留该对象作为一条记录
+                existingRecords = [currentGamedata];
+              }
+            }
             newGameData = [...existingRecords, gameDataRecord];
           }
           

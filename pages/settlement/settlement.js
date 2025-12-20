@@ -556,7 +556,7 @@ Page({
           });
           
           // 显示成功统计信息
-          const successMessage = `🏆 结算完成！记录数: ${gamedata.length}`;
+          const successMessage = `结算完成！记录数: ${gamedata.length}`;
           setTimeout(() => {
             wx.showToast({
               title: successMessage,

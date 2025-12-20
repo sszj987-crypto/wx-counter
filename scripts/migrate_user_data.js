@@ -36,9 +36,9 @@ async function migrateUserData() {
             updates.gamedata = gamedata.records;
             needsUpdate = true;
           } else {
-            console.log(`  ⚠️  gamedata为未知对象结构，设置为空数组`);
-            updates.gamedata = [];
-            needsUpdate = true;
+            // 如果gamedata是对象但没有records属性，保留其结构
+            console.log(`  ⚠️  gamedata为对象但没有records属性，保留其结构`);
+            // 不修改gamedata字段，避免数据丢失
           }
         } else if (Array.isArray(gamedata)) {
           console.log(`  ✅ gamedata为正确数组结构，长度: ${gamedata.length}`);
