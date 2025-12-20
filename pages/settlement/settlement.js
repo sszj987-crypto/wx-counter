@@ -487,7 +487,7 @@ Page({
         });
         openId = userInfoResult.openId;
       } catch (openIdError) {
-        console.error('❌ 获取用户openId失败:', openIdError);
+        console.error('获取用户openId失败:', openIdError);
         wx.showToast({
           title: '获取用户信息失败',
           icon: 'error',
@@ -550,7 +550,7 @@ Page({
         if (isMatch) {
           
           wx.showToast({
-            title: '✅ 数据保存成功',
+            title: '数据保存成功',
             icon: 'success',
             duration: 2000
           });
@@ -578,7 +578,7 @@ Page({
           });
           
           wx.showToast({
-            title: `⚠️ 数据保存异常（房间ID不匹配）`,
+            title: `数据保存异常（房间ID不匹配）`,
             icon: 'error',
             duration: 3000
           });
@@ -586,14 +586,14 @@ Page({
       } else {
         
         wx.showToast({
-          title: '❌ 数据保存失败（无记录）',
+          title: '数据保存失败（无记录）',
           icon: 'error',
           duration: 3000
         });
       }
       
     } catch (error) {
-      console.error('❌ === 验证结算数据时出错 ===', error);
+      console.error('=== 验证结算数据时出错 ===', error);
       
       // 详细的错误信息
       let errorMessage = '数据验证失败';

@@ -80,7 +80,7 @@ async function fixUserStatistics() {
             statistics: newStatistics
           });
           fixedCount++;
-          console.log(`  ✅ 统计数据修复成功`);
+          console.log(`     统计数据修复成功`);
           console.log(`     新统计数据:`, JSON.stringify(newStatistics));
         }
         
