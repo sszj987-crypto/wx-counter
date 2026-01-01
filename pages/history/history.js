@@ -63,7 +63,11 @@ Page({
               
               // 获取gamedata数据（已经是数组格式）
               const gameData = Array.isArray(res.data.gamedata) ? res.data.gamedata : [];
-              const records = gameData; // gamedata直接是数组
+              const records = gameData.slice().sort((a, b) => {
+                const ta = a && a.endTime ? new Date(a.endTime).getTime() : 0;
+                const tb = b && b.endTime ? new Date(b.endTime).getTime() : 0;
+                return tb - ta;
+              });
               const statistics = res.data.statistics || {}; // 获取statistics统计信息
               
               // 计算总数据量

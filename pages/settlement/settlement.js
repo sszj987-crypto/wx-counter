@@ -593,8 +593,7 @@ Page({
       }
       
     } catch (error) {
-      console.error('=== 验证结算数据时出错 ===', error);
-      
+      console.error('=== 验证结算数据时出错 ===', error);      
       // 详细的错误信息
       let errorMessage = '数据验证失败';
       if (error.errCode) {

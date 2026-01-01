@@ -462,12 +462,6 @@ Page({
     // 设置新的定时器，延迟执行实际的检查逻辑
     const timer = setTimeout(async () => {
       try {
-        
-        // 先重置activeRoom为null，确保默认状态正确
-        this.setData({
-          activeRoom: null
-        })
-        
         // 即使没有用户信息初始化完成，也尝试获取openId
         let openId = null
         try {
@@ -534,7 +528,16 @@ Page({
               await db.collection('rooms').doc(room._id).remove()
             } catch (removeError) {
             }
+            this.setData({
+              activeRoom: null
+            })
           }
+        }
+        
+        if (!result.data || result.data.length === 0) {
+          this.setData({
+            activeRoom: null
+          })
         }
         
         return null

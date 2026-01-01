@@ -12,7 +12,6 @@ Page({
     roomId: null,
     roomData: null,
     userInfo: null,
-    qrcodeUrl: '',
     isCreating: false,
     currentUserOpenId: '',
     transferModal: {
@@ -24,12 +23,10 @@ Page({
       show: false,
       rate: '1'
     },
-    qrcodeModal: {
-      show: false
-    },
     isTeaServiceEnabled: false,
     teaServicePlayerId: null,
-    isSettling: false // 防止重复结算的状态标志
+    isSettling: false, // 防止重复结算的状态标志
+    isExitingRoom: false
   },
 
   /**
@@ -328,22 +325,6 @@ Page({
         }
       }
       
-      // 清除所有房间二维码缓存（创建新房间后）
-      const app = getApp();
-      const cacheManager = app.globalData.cacheManager;
-      cacheManager.clearAllRoomQRCodes();
-      
-      // 生成小程序码
-      this.generateQRCode().then(() => {
-        if (false) {
-          // 自动显示二维码弹窗
-          this.showQRCodeModal();
-        }
-      });
-      
-      // 生成小程序码（加入房间时不自动显示弹窗）
-      this.generateQRCode();
-      
       // 检查是否存在台位/茶水玩家
       await this.checkTeaServiceStatus(roomData);
       
@@ -636,130 +617,6 @@ Page({
   },
 
   /**
-   * 生成小程序码 - 简化实现，直接使用本地默认图片
-   * @returns {Promise} 操作完成的Promise
-   */
-  generateQRCode() {
-    return new Promise((resolve) => {
-      try {
-        // 如果没有roomId，不执行生成
-        if (!this.data.roomId) {
-          console.error('房间ID未设置');
-          wx.showToast({
-            title: '房间ID未设置，无法生成二维码',
-            icon: 'none'
-          });
-          resolve(false);
-          return;
-        }
-        
-        // 直接使用本地默认二维码图片作为解决方案
-        this.setData({
-          qrcodeUrl: '/images/小程序码.jpg',
-          // 存储房间ID，用于在弹窗中显示
-          currentRoomId: this.data.roomId
-        });
-        
-        resolve(true);
-        
-      } catch (error) {
-        console.error('生成小程序码失败:', error);
-        // 出错时使用默认图片
-        this.setData({
-          qrcodeUrl: '/images/小程序码.jpg',
-          currentRoomId: this.data.roomId || ''
-        });
-        wx.showToast({
-          title: '二维码生成失败，显示备用图片',
-          icon: 'none'
-        });
-        resolve(false);
-      }
-    });
-  },
-
-  /**
-   * 显示二维码弹窗 - 修复版，添加详细的错误处理
-   */
-  async showQRCodeModal() {
-    try {
-      // 尝试从缓存获取二维码
-      const app = getApp();
-      const cacheManager = app.globalData.cacheManager;
-      let qrcodeUrl = cacheManager.getRoomQRCode(this.data.roomId);
-      
-      if (!qrcodeUrl) {
-        // 缓存中没有二维码，调用云函数生成
-        wx.showLoading({
-          title: '生成房间二维码...',
-        });
-        
-        // 调用云函数生成房间二维码
-        const result = await wx.cloud.callFunction({
-          name: 'generateQRCode',
-          data: {
-            roomId: this.data.roomId
-          }
-        });
-        
-        wx.hideLoading();
-        
-        // 详细检查返回结果
-        if (result && result.result) {
-          if (result.result.success) {
-            qrcodeUrl = result.result.qrcodeUrl;
-            // 将二维码存入缓存
-            cacheManager.setRoomQRCode(this.data.roomId, qrcodeUrl);
-          } else {
-            // 使用云函数返回的详细错误信息
-            throw new Error(result.result.error || '生成房间二维码失败');
-          }
-        } else {
-          throw new Error('云函数调用失败，未返回预期结果');
-        }
-      } else {
-      }
-      
-      // 更新二维码URL并显示弹窗
-      this.setData({
-        qrcodeUrl: qrcodeUrl,
-        currentRoomId: this.data.roomId,
-        'qrcodeModal.show': true,
-        // 开发环境提示信息
-        qrcodeEnvironmentInfo: '开发环境中，二维码会先跳转至首页再自动转跳至房间页面'
-      });
-    } catch (error) {
-      wx.hideLoading();
-      console.error('生成房间二维码失败:', error);
-      
-      // 提供详细的错误信息，特别是针对41030（页面路径无效）错误
-      let errorMessage = '生成二维码失败';
-      if (error && error.errCode === 41030) {
-        errorMessage = '页面路径无效，请检查页面配置或确认已发布';
-      } else if (error && error.errCode === -604101) {
-        errorMessage = '权限错误，请重新部署云函数并检查权限配置';
-      } else if (error && error.message) {
-        errorMessage = error.message;
-      }
-      
-      wx.showToast({
-        title: errorMessage,
-        icon: 'none',
-        duration: 3000 // 增加显示时间，让用户有足够时间阅读详细错误
-      });
-    }
-  },
-
-  /**
-   * 隐藏二维码弹窗
-   */
-  hideQRCodeModal() {
-    this.setData({
-      'qrcodeModal.show': false
-    });
-  },
-
-  /**
    * 切换台位/茶水开关
    */
   async toggleTeaService() {
@@ -888,7 +745,9 @@ Page({
     const startWatcher = () => {
       const watcher = db.collection('rooms').doc(this.data.roomId).watch({
         onChange: async (snapshot) => {
-          
+          if (this.data.isExitingRoom) {
+            return;
+          }
           // 检查房间是否被删除或状态变为inactive（docs长度为0表示文档被删除）
           if (snapshot.docs.length === 0) {
             // 房间已被删除，直接跳转到结算页面
@@ -960,6 +819,9 @@ Page({
           }
         },
         onError: async (error) => {
+          if (this.data.isExitingRoom) {
+            return;
+          }
           console.error('监听房间数据失败:', error);
           
           // 统一处理房间已结算或已删除的情况
@@ -1341,6 +1203,153 @@ Page({
     wx.navigateTo({
       url: `/pages/score-details/score-details?roomId=${this.data.roomId}&roomNumber=${this.data.roomData.roomNumber || ''}`
     });
+  },
+
+  /**
+   * 退出房间
+   */
+  async exitRoom() {
+    if (!this.data.roomId || !this.data.roomData) {
+      wx.showToast({
+        title: '房间信息错误',
+        icon: 'error'
+      });
+      return;
+    }
+
+    if (this.data.isSettling) {
+      wx.showToast({
+        title: '结算进行中，暂时无法退出',
+        icon: 'none'
+      });
+      return;
+    }
+
+    const confirm = await new Promise((resolve) => {
+      wx.showModal({
+        title: '退出房间',
+        content: '确定要退出当前房间吗？',
+        confirmText: '退出',
+        cancelText: '取消',
+        success: (res) => {
+          resolve(res.confirm);
+        },
+        fail: () => {
+          resolve(false);
+        }
+      });
+    });
+
+    if (!confirm) {
+      return;
+    }
+
+    this.setData({
+      isExitingRoom: true
+    });
+
+    if (this.watcher) {
+      try {
+        this.watcher.close();
+      } catch (e) {
+      }
+      this.watcher = null;
+    }
+
+    try {
+      wx.showLoading({
+        title: '正在退出...',
+        mask: true
+      });
+
+      const roomId = this.data.roomId;
+      const currentUserOpenId = this.data.currentUserOpenId;
+
+      const roomDoc = await db.collection('rooms').doc(roomId).get();
+      const room = roomDoc.data;
+
+      if (!room || !Array.isArray(room.players)) {
+        wx.hideLoading();
+        wx.switchTab({
+          url: '/pages/home/home'
+        });
+        return;
+      }
+
+      const isTeaServicePlayer = (player) =>
+        player.nickName === '台位/茶水' || (typeof player.openId === 'string' && player.openId.startsWith('tea_service_'));
+
+      const realPlayers = room.players.filter((p) => !isTeaServicePlayer(p));
+
+      const stillInRoom = realPlayers.some((p) => p.openId === currentUserOpenId);
+
+      if (!stillInRoom) {
+        wx.hideLoading();
+        wx.switchTab({
+          url: '/pages/home/home'
+        });
+        return;
+      }
+
+      if (realPlayers.length <= 1) {
+        try {
+          await db.collection('rooms').doc(roomId).remove();
+        } catch (removeError) {
+          console.error('删除房间失败:', removeError);
+          wx.hideLoading();
+          wx.showToast({
+            title: '退出房间失败，请重试',
+            icon: 'none'
+          });
+          return;
+        }
+      } else {
+        const updatedPlayers = room.players.filter((p) => p.openId !== currentUserOpenId);
+        try {
+          await db.collection('rooms').doc(roomId).update({
+            data: {
+              players: updatedPlayers
+            }
+          });
+        } catch (updateError) {
+          console.error('更新房间玩家失败:', updateError);
+          wx.hideLoading();
+          wx.showToast({
+            title: '退出房间失败，请重试',
+            icon: 'none'
+          });
+          return;
+        }
+      }
+
+      wx.hideLoading();
+
+      try {
+        const pages = getCurrentPages();
+        for (const page of pages) {
+          if (page.route === 'pages/home/home' && typeof page.checkActiveRoom === 'function') {
+            page.checkActiveRoom();
+            break;
+          }
+        }
+      } catch (e) {
+      }
+
+      wx.switchTab({
+        url: '/pages/home/home'
+      });
+    } catch (error) {
+      console.error('退出房间失败:', error);
+      wx.hideLoading();
+      wx.showToast({
+        title: '退出房间失败，请重试',
+        icon: 'none'
+      });
+    } finally {
+      this.setData({
+        isExitingRoom: false
+      });
+    }
   },
 
   /**
