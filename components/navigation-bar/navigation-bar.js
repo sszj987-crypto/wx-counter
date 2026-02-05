@@ -129,14 +129,10 @@ Component({
     }
   },
   
-  /**
-   * 回到首页
-   */
   home() {
-    wx.switchTab({
+    wx.reLaunch({
       url: '/pages/home/home'
     });
-    
     this.triggerEvent('home', {}, {});
   }
 })

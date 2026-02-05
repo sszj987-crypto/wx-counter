@@ -268,6 +268,7 @@ Page({
         _id: openId, // 使用openId作为文档ID
         nickName: userInfo.nickName || '玩家',
         avatarUrl: userInfo.avatarUrl || '/images/default-avatar.png',
+        largeTextEnabled: false,
         gamedata: [], // 直接数组结构存储游戏记录
         statistics: {
           totalGames: 0,

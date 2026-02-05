@@ -26,7 +26,9 @@ Page({
     isTeaServiceEnabled: false,
     teaServicePlayerId: null,
     isSettling: false, // 防止重复结算的状态标志
-    isExitingRoom: false
+    isExitingRoom: false,
+    largeTextEnabled: false,
+    showSettingsPanel: false
   },
 
   /**
@@ -36,6 +38,8 @@ Page({
     const { roomId, mode } = options;
     const app = getApp();
     
+    this.loadLargeTextSetting();
+
     // 先获取最新用户信息
     await this.updateUserInfoFromDatabase();
     
@@ -60,6 +64,7 @@ Page({
    * 每次页面显示时都重新获取最新用户信息并更新房间数据
    */
   async onShow() {
+    this.loadLargeTextSetting();
     // 更新用户信息
     await this.updateUserInfoFromDatabase();
     // 如果房间已加载，重新获取最新房间数据以更新玩家信息
@@ -82,6 +87,52 @@ Page({
         url: '/pages/profile/profile'
       });
     }
+  },
+
+  loadLargeTextSetting() {
+    const enabled = !!wx.getStorageSync('largeTextEnabled');
+    this.setData({
+      largeTextEnabled: enabled
+    });
+  },
+
+  async toggleLargeText(e) {
+    const enabled = !!(e && e.detail && e.detail.value);
+    wx.setStorageSync('largeTextEnabled', enabled);
+    this.setData({
+      largeTextEnabled: enabled
+    });
+
+    try {
+      let openId = this.data.currentUserOpenId;
+      if (!openId) {
+        const { result: userInfoResult } = await wx.cloud.callFunction({
+          name: 'getOpenId'
+        });
+        openId = userInfoResult.openId;
+      }
+      if (openId) {
+        await wx.cloud.database().collection('users').doc(openId).update({
+          data: {
+            largeTextEnabled: enabled,
+            updateTime: new Date()
+          }
+        });
+      }
+    } catch (error) {
+    }
+  },
+
+  toggleSettingsPanel() {
+    this.setData({
+      showSettingsPanel: !this.data.showSettingsPanel
+    });
+  },
+
+  closeSettingsPanel() {
+    this.setData({
+      showSettingsPanel: false
+    });
   },
 
   /**
@@ -150,12 +201,18 @@ Page({
         const userDoc = await db.collection('users').doc(openId).get();
         
         if (userDoc.data) {
-          // 更新用户信息
+          const userData = userDoc.data;
+          if (typeof userData.largeTextEnabled === 'boolean') {
+            const enabled = !!userData.largeTextEnabled;
+            wx.setStorageSync('largeTextEnabled', enabled);
+            this.setData({
+              largeTextEnabled: enabled
+            });
+          }
           userInfo = {
-            nickName: userDoc.data.nickName || '玩家',
-            avatarUrl: userDoc.data.avatarUrl || '/images/default-avatar.png'
+            nickName: userData.nickName || '玩家',
+            avatarUrl: userData.avatarUrl || '/images/default-avatar.png'
           };
-          // 更新全局用户信息
           app.globalData.userInfo = userInfo;
         }
       } catch (dbError) {
@@ -270,42 +327,41 @@ Page({
         teaServiceScore: 0 // 新增：台位分数记忆
       };
 
-      // 创建房间
       await wx.cloud.database().collection('rooms').add({
         data: roomData
       });
 
-      // 更新用户信息
       try {
         await wx.cloud.database().collection('users').doc(openId).update({
-            data: {
-              nickName: this.data.userInfo.nickName || '用户',
-              avatarUrl: this.data.userInfo.avatarUrl || '',
-              lastActiveTime: new Date()
-            }
-          });
-        } catch (error) {
-          // 如果用户不存在则创建
-          await wx.cloud.database().collection('users').add({
-            data: {
-              _id: openId,
-              openId: openId,
-              nickName: this.data.userInfo.nickName || '用户',
-              avatarUrl: this.data.userInfo.avatarUrl || '',
-              gamemate: [],
-              gamedata: [], // 直接数组结构存储游戏记录
-              statistics: {
-                totalGames: 0,
-                totalScore: 0,
-                wins: 0,
-                losses: 0,
-                draws: 0,
-                winRate: 0,
-                netScore: 0
-              },
-              lastActiveTime: new Date()
-            }
-          });
+          data: {
+            nickName: this.data.userInfo.nickName || '用户',
+            avatarUrl: this.data.userInfo.avatarUrl || '',
+            lastActiveTime: new Date(),
+            largeTextEnabled: this.data.largeTextEnabled
+          }
+        });
+      } catch (error) {
+        await wx.cloud.database().collection('users').add({
+          data: {
+            _id: openId,
+            openId: openId,
+            nickName: this.data.userInfo.nickName || '用户',
+            avatarUrl: this.data.userInfo.avatarUrl || '',
+            gamemate: [],
+            gamedata: [],
+            statistics: {
+              totalGames: 0,
+              totalScore: 0,
+              wins: 0,
+              losses: 0,
+              draws: 0,
+              winRate: 0,
+              netScore: 0
+            },
+            lastActiveTime: new Date(),
+            largeTextEnabled: this.data.largeTextEnabled
+          }
+        });
       }
 
       this.setData({
@@ -1632,9 +1688,9 @@ Page({
               _id: playerResult.openId,
               openId: playerResult.openId,
               nickName: playerResult.nickName || '玩家',
-              avatarUrl: '', // 可以后续从其他地方获取
+              avatarUrl: '',
               gamemate: [],
-              gamedata: [], // 直接数组结构存储游戏记录
+              gamedata: [],
               statistics: {
                 totalGames: 0,
                 totalScore: 0,
@@ -1646,7 +1702,8 @@ Page({
               },
               lastActiveTime: new Date(),
               createdAt: new Date(),
-              fromDatabase: true // 标记为来自数据库
+              fromDatabase: true,
+              largeTextEnabled: false
             };
             
             // 创建用户记录

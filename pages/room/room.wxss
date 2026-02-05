@@ -51,8 +51,24 @@ page {
   box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
 }
 
+.room-top-bar {
+  width: 100%;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0;
+  margin-bottom: 24rpx;
+  background: #ffffff;
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+}
+
 .room-header {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 40rpx;
 }
 
@@ -60,6 +76,8 @@ page {
   font-size: 36rpx;
   font-weight: bold;
   color: #333;
+  text-align: center;
+  width: 100%;
 }
 
 .invite-section {
@@ -106,20 +124,142 @@ page {
 }
 
 /* 台位/茶水开关样式 */
-.tea-service-switch {
-  width: 100%;
+.settings-button {
+  height: 60rpx;
+  padding: 0 24rpx;
+  border-radius: 30rpx;
+  background: #ffffff;
+  border: 1rpx solid #e9ecef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  min-width: 0;
+  box-sizing: border-box;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+}
+
+.settings-icon {
+  font-size: 30rpx;
+}
+
+.settings-label {
+  font-size: 28rpx;
+  color: #333;
+  margin-left: 8rpx;
+}
+
+.settings-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9998;
+}
+
+.settings-panel {
+  position: fixed;
+  top: 210rpx;
+  right: 40rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.12);
+  z-index: 9999;
+  min-width: 260rpx;
+}
+
+.setting-option {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #f8f9fa;
-  padding: 20rpx 30rpx;
-  border-radius: 12rpx;
-  margin-top: 10rpx;
+  padding: 16rpx 10rpx;
+}
+
+.setting-option + .setting-option {
+  border-top: 1rpx solid #f0f0f0;
 }
 
 .switch-label {
   font-size: 28rpx;
   color: #333;
+}
+
+.large-text .room-name {
+  font-size: 48rpx;
+}
+
+.large-text .share-text,
+.large-text .qrcode-text {
+  font-size: 34rpx;
+}
+
+.large-text .switch-label {
+  font-size: 38rpx;
+}
+
+.large-text .room-top-bar {
+  height: 108rpx;
+}
+
+.large-text .settings-button {
+  height: 78rpx;
+  padding: 0 36rpx;
+  border-radius: 39rpx;
+}
+
+.large-text .settings-icon {
+  font-size: 38rpx;
+}
+
+.large-text .settings-label {
+  font-size: 36rpx;
+}
+
+.large-text .section-title {
+  padding: 38rpx 44rpx;
+}
+
+.large-text .title-text {
+  font-size: 42rpx;
+}
+
+.large-text .player-count {
+  font-size: 34rpx;
+}
+
+.large-text .header-cell {
+  font-size: 34rpx;
+}
+
+.large-text .player-name {
+  font-size: 38rpx;
+}
+
+.large-text .score-value {
+  font-size: 42rpx;
+}
+
+.large-text .transfer-button {
+  height: 68rpx;
+  border-radius: 34rpx;
+  font-size: 36rpx;
+  max-width: 160rpx;
+}
+
+.large-text .modal-title {
+  font-size: 42rpx;
+}
+
+.large-text .modal-button {
+  font-size: 36rpx;
+}
+
+.large-text .action-button {
+  font-size: 40rpx;
+  height: 108rpx;
+  line-height: 108rpx;
 }
 
 .players-section {

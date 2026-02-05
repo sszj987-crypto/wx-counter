@@ -1,7 +1,7 @@
 <!--score-details.wxml-->
 <navigation-bar title="给分详情" back="{{true}}" color="black" background="#FFF"></navigation-bar>
 
-<view class="container">
+<view class="container {{largeTextEnabled ? 'large-text' : ''}}">
   <!-- 房间信息 -->
   <view class="room-info" wx:if="{{!isLoading}}">
     <view class="room-name">房间{{roomNumber}}</view>

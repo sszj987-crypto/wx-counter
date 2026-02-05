@@ -9,10 +9,12 @@ Page({
     rate: 1,
     roomClosed: false,
     isCreatingNewRoom: false,
-    settlementTime: '' // 结算时间，用于验证
+    settlementTime: '', // 结算时间，用于验证
+    largeTextEnabled: false
   },
 
   async onLoad(options) {
+    this.loadLargeTextSetting();
     
     // 检查房间是否已关闭
     if (options.roomClosed) {
@@ -121,6 +123,17 @@ Page({
         icon: 'error'
       });
     }
+  },
+
+  onShow() {
+    this.loadLargeTextSetting();
+  },
+
+  loadLargeTextSetting() {
+    const enabled = !!wx.getStorageSync('largeTextEnabled');
+    this.setData({
+      largeTextEnabled: enabled
+    });
   },
 
   /**
@@ -436,38 +449,10 @@ Page({
     }
   },
   
-  /**
-   * 返回首页
-   */
- goToHome() {
-    try {
-      // 直接使用switchTab跳转到首页，避免页面堆栈问题
-      wx.switchTab({
-        url: '/pages/home/home',
-        success: () => {
-        },
-        fail: (error) => {
-          console.error('switchTab跳转首页失败:', error);
-          // 如果switchTab失败，尝试reLaunch
-          wx.reLaunch({
-            url: '/pages/home/home',
-            success: () => {
-            },
-            fail: (reLaunchError) => {
-              console.error('reLaunch跳转首页也失败:', reLaunchError);
-              // 最后尝试index页面
-              wx.reLaunch({
-                url: '/pages/index/index',
-                success: () => {
-                }
-              });
-            }
-          });
-        }
-      });
-    } catch (e) {
-      console.error('返回首页方法执行异常:', e);
-    }
+  goToHome() {
+    wx.reLaunch({
+      url: '/pages/home/home'
+    });
   },
 
   /**

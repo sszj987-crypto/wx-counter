@@ -6,7 +6,8 @@ Page({
     roomId: '',
     roomNumber: '',
     scoreRecords: [],
-    isLoading: true
+    isLoading: true,
+    largeTextEnabled: false
   },
 
   // 格式化时间函数 - 直接定义在Page对象中
@@ -51,6 +52,7 @@ Page({
   },
 
   onLoad(options) {
+    this.loadLargeTextSetting()
     const { roomId, roomNumber } = options
     
     if (!roomId) {
@@ -73,6 +75,17 @@ Page({
     })
 
     this.getScoreRecords()
+  },
+
+  onShow() {
+    this.loadLargeTextSetting()
+  },
+
+  loadLargeTextSetting() {
+    const enabled = !!wx.getStorageSync('largeTextEnabled')
+    this.setData({
+      largeTextEnabled: enabled
+    })
   },
 
   // 获取给分记录

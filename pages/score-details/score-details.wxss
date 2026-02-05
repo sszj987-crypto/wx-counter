@@ -163,3 +163,32 @@ page {
   font-size: 36rpx;
   font-weight: bold;
 }
+
+.large-text .room-name {
+  font-size: 48rpx;
+}
+
+.large-text .title-text {
+  font-size: 40rpx;
+}
+
+.large-text .record-count {
+  font-size: 34rpx;
+}
+
+.large-text .player-name {
+  font-size: 36rpx;
+}
+
+.large-text .arrow {
+  font-size: 40rpx;
+}
+
+.large-text .score-value {
+  font-size: 44rpx;
+}
+
+.large-text .record-time,
+.large-text .empty-text {
+  font-size: 34rpx;
+}
