@@ -133,6 +133,8 @@
         value="{{transferModal.score}}"
         bindinput="onScoreInput" 
         focus="{{transferModal.focusTrigger}}"
+        adjust-position="true"
+        cursor-spacing="120"
         style="width: 100%; height: 80rpx; border: 1rpx solid #ddd; border-radius: 8rpx; padding: 0 20rpx; font-size: 32rpx; box-sizing: border-box;"
         confirm-type="done"
         cursor="10"/>

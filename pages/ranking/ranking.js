@@ -213,13 +213,16 @@ Page({
   calculateUserStats(gamedata, statistics) {
     // 优先使用顶层的statistics字段（新数据结构）
     if (statistics && typeof statistics === 'object') {
+      const wins = statistics.wins || 0
+      const losses = statistics.losses || 0
+      const effectiveGames = wins + losses
       return {
         totalGames: statistics.totalGames || 0,
         totalScore: statistics.totalScore || 0,
-        wins: statistics.wins || 0,
-        losses: statistics.losses || 0,
+        wins: wins,
+        losses: losses,
         draws: statistics.draws || 0,
-        winRate: statistics.winRate || 0,
+        winRate: effectiveGames > 0 ? wins / effectiveGames : 0,
         netScore: statistics.netScore || 0
       }
     }
@@ -242,8 +245,9 @@ Page({
       else draws++
     })
     
-    // 计算胜率
-    const winRate = totalGames > 0 ? wins / totalGames : 0
+    // 计算胜率（剔除得分为0的记录）
+    const effectiveGames = wins + losses
+    const winRate = effectiveGames > 0 ? wins / effectiveGames : 0
     // 计算净胜分
     const netScore = totalScore
     
