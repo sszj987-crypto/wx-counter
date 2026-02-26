@@ -28,7 +28,8 @@ Page({
     isSettling: false, // 防止重复结算的状态标志
     isExitingRoom: false,
     largeTextEnabled: false,
-    showSettingsPanel: false
+    showSettingsPanel: false,
+    isTransferring: false
   },
 
   /**
@@ -154,18 +155,26 @@ Page({
         
         // 如果找到当前用户，更新其头像和昵称
         if (currentPlayerIndex !== -1 && this.data.userInfo) {
+          const currentPlayer = updatedRoomData.players[currentPlayerIndex] || {};
+          const nextNickName = this.data.userInfo.nickName;
+          const nextAvatarUrl = this.data.userInfo.avatarUrl;
+          const updateData = {};
+          if (nextNickName && nextNickName !== currentPlayer.nickName) {
+            updateData[`players.${currentPlayerIndex}.nickName`] = nextNickName;
+          }
+          if (nextAvatarUrl && nextAvatarUrl !== currentPlayer.avatarUrl) {
+            updateData[`players.${currentPlayerIndex}.avatarUrl`] = nextAvatarUrl;
+          }
+          if (Object.keys(updateData).length > 0) {
+            await db.collection('rooms').doc(this.data.roomId).update({
+              data: updateData
+            });
+          }
           updatedRoomData.players[currentPlayerIndex] = {
-            ...updatedRoomData.players[currentPlayerIndex],
-            nickName: this.data.userInfo.nickName,
-            avatarUrl: this.data.userInfo.avatarUrl
+            ...currentPlayer,
+            ...(nextNickName ? { nickName: nextNickName } : {}),
+            ...(nextAvatarUrl ? { avatarUrl: nextAvatarUrl } : {})
           };
-          
-          // 更新数据库中的玩家信息
-          await db.collection('rooms').doc(this.data.roomId).update({
-            data: {
-              players: updatedRoomData.players
-            }
-          });
         }
         
         // 更新页面数据
@@ -678,21 +687,23 @@ Page({
   async toggleTeaService() {
     try {
       const newState = !this.data.isTeaServiceEnabled;
-      
+      const roomId = this.data.roomId;
+      if (!roomId) {
+        return;
+      }
+
       if (newState) {
-        // 打开开关，添加台位/茶水玩家
         const teaServicePlayer = {
           nickName: '台位/茶水',
           avatarUrl: '/images/default-avatar.png',
           openId: 'tea_service_' + Date.now(),
           score: this.data.roomData.teaServiceScore || 0 // 恢复之前记忆的分数
         };
-        
-        const players = [...this.data.roomData.players, teaServicePlayer];
-        
-        await db.collection('rooms').doc(this.data.roomId).update({
+
+        await db.collection('rooms').doc(roomId).update({
           data: {
-            players: players
+            players: db.command.push(teaServicePlayer),
+            teaServiceScore: teaServicePlayer.score
           }
         });
         
@@ -701,23 +712,21 @@ Page({
           teaServicePlayerId: teaServicePlayer.openId
         });
       } else {
-        // 关闭开关，先保存当前台位分数，再移除台位/茶水玩家
-        const teaServicePlayer = this.data.roomData.players.find(
+        const roomResult = await db.collection('rooms').doc(roomId).get();
+        const roomData = roomResult.data || {};
+        const teaServicePlayer = (roomData.players || []).find(
           player => player.openId === this.data.teaServicePlayerId
         );
-        
-        // 记忆当前台位分数
         const teaServiceScore = teaServicePlayer ? teaServicePlayer.score : 0;
-        
-        const players = this.data.roomData.players.filter(
-          player => player.openId !== this.data.teaServicePlayerId
-        );
-        
-        await db.collection('rooms').doc(this.data.roomId).update({
-          data: {
-            players: players,
-            teaServiceScore: teaServiceScore // 保存分数到房间数据中
-          }
+        const teaServiceOpenId = teaServicePlayer ? teaServicePlayer.openId : this.data.teaServicePlayerId;
+        const updateData = {
+          teaServiceScore: teaServiceScore
+        };
+        if (teaServiceOpenId) {
+          updateData.players = db.command.pull({ openId: teaServiceOpenId });
+        }
+        await db.collection('rooms').doc(roomId).update({
+          data: updateData
         });
         
         this.setData({
@@ -740,19 +749,6 @@ Page({
   async checkTeaServiceStatus(roomData) {
     if (!roomData || !roomData.players) return;
     
-    // 初始化teaServiceScore字段（如果不存在）
-    if (roomData.teaServiceScore === undefined) {
-      try {
-        await db.collection('rooms').doc(this.data.roomId).update({
-          data: {
-            teaServiceScore: 0
-          }
-        });
-      } catch (error) {
-        console.error('初始化台位分数字段失败:', error);
-      }
-    }
-    
     // 查找台位/茶水玩家（通过nickName或openId前缀识别）
     const teaServicePlayer = roomData.players.find(player => 
       player.nickName === '台位/茶水' || player.openId.startsWith('tea_service_')
@@ -763,19 +759,6 @@ Page({
         isTeaServiceEnabled: true,
         teaServicePlayerId: teaServicePlayer.openId
       });
-      
-      // 确保teaServiceScore与台位玩家当前分数同步
-      if (teaServicePlayer.score !== roomData.teaServiceScore) {
-        try {
-          await db.collection('rooms').doc(this.data.roomId).update({
-            data: {
-              teaServiceScore: teaServicePlayer.score
-            }
-          });
-        } catch (error) {
-          console.error('同步台位分数失败:', error);
-        }
-      }
     } else {
       this.setData({
         isTeaServiceEnabled: false,
@@ -853,25 +836,6 @@ Page({
             
             // 检查台位/茶水状态
             await this.checkTeaServiceStatus(updatedRoomData);
-            
-            // 如果台位/茶水玩家存在，且分数发生变化，同步更新teaServiceScore
-            if (updatedRoomData.isTeaServiceEnabled || this.data.isTeaServiceEnabled) {
-              const teaServicePlayer = updatedRoomData.players.find(
-                player => player.nickName === '台位/茶水' || player.openId.startsWith('tea_service_')
-              );
-              
-              if (teaServicePlayer && teaServicePlayer.score !== updatedRoomData.teaServiceScore) {
-                try {
-                  await db.collection('rooms').doc(this.data.roomId).update({
-                    data: {
-                      teaServiceScore: teaServicePlayer.score
-                    }
-                  });
-                } catch (error) {
-                  console.error('同步台位分数失败:', error);
-                }
-              }
-            }
           }
         },
         onError: async (error) => {
@@ -1009,6 +973,9 @@ Page({
     if (!this.data.transferModal.show) {
       return;
     }
+    if (this.data.isTransferring) {
+      return;
+    }
     
     // 仅在用户主动点击取消或关闭按钮时清空targetPlayer
     const currentStack = new Error().stack;
@@ -1075,6 +1042,9 @@ Page({
    */
   async confirmTransfer() {
     const { targetPlayer, score } = this.data.transferModal;
+    if (this.data.isTransferring) {
+      return;
+    }
     
     // 检查目标玩家是否有效
     if (!targetPlayer) {
@@ -1094,7 +1064,8 @@ Page({
       return;
     }
     
-    if (!score || score <= 0) {
+    const parsedScore = parseInt(score, 10);
+    if (!parsedScore || parsedScore <= 0) {
       wx.showToast({
         title: '请输入有效分数',
         icon: 'none'
@@ -1107,45 +1078,64 @@ Page({
       title: '处理中...',
       mask: true
     });
+    this.setData({ isTransferring: true });
 
     try {
-      const result = await wx.cloud.callFunction({
-        name: 'transferScore',
-        data: {
-          roomId: this.data.roomId,
-          toPlayerOpenId: targetPlayer.openId,
-          score: parseInt(score)
+      let result;
+      let attempt = 0;
+      const maxAttempts = 5;
+      while (attempt < maxAttempts) {
+        attempt += 1;
+        try {
+          result = await wx.cloud.callFunction({
+            name: 'transferScore',
+            data: {
+              roomId: this.data.roomId,
+              toPlayerOpenId: targetPlayer.openId,
+              score: parsedScore
+            }
+          });
+          break;
+        } catch (error) {
+          if (attempt >= maxAttempts) {
+            throw error;
+          }
+          // 指数退避，降低连续失败时的瞬时压力
+          const delay = 200 * Math.pow(2, attempt - 1);
+          await new Promise(resolve => setTimeout(resolve, delay));
         }
-      });
+      }
 
-      // 隐藏加载提示
-      wx.hideLoading();
-
-      if (result.result.success) {
+      if (result && result.result && result.result.success) {
         wx.showToast({
           title: '给分成功',
           icon: 'success'
         });
-        
+        wx.hideKeyboard();
+        this.setData({
+          'transferModal.show': false,
+          'transferModal.score': '',
+          'transferModal.focusTrigger': false
+        });
         // 给分成功后主动刷新房间数据
         await this.refreshRoomDataAfterTransfer();
-        
-        this.hideTransferModal();
       } else {
+        const errorMessage = result && result.result && result.result.error ? result.result.error : '给分失败，请重试';
         wx.showToast({
-          title: result.result.error,
+          title: errorMessage,
           icon: 'error'
         });
       }
     } catch (error) {
       console.error('给分失败:', error);
-      // 隐藏加载提示
-      wx.hideLoading();
       
       wx.showToast({
         title: '给分失败，请重试',
         icon: 'error'
       });
+    } finally {
+      wx.hideLoading();
+      this.setData({ isTransferring: false });
     }
   },
 

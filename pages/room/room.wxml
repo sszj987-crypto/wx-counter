@@ -160,8 +160,10 @@
     </view>
     
     <view class="modal-footer">
-      <button class="modal-button cancel" bindtap="hideTransferModal">取消</button>
-      <button class="modal-button confirm" bindtap="confirmTransfer">确认</button>
+      <button class="modal-button cancel" bindtap="hideTransferModal" disabled="{{isTransferring}}">取消</button>
+      <button class="modal-button confirm" bindtap="confirmTransfer" disabled="{{isTransferring}}">
+        {{isTransferring ? '处理中...' : '确认'}}
+      </button>
     </view>
   </view>
 </view>
