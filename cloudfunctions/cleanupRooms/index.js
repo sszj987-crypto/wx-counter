@@ -219,7 +219,6 @@ exports.main = async (event, context) => {
       for (const room of res.data) {
         try {
           if (room.status === 'inactive') {
-            await db.collection('rooms').doc(room._id).remove()
             deletedCount += 1
             continue
           }
@@ -229,8 +228,10 @@ exports.main = async (event, context) => {
           } else {
             skippedCount += 1
           }
-          await db.collection('rooms').doc(room._id).remove()
-          deletedCount += 1
+          if (room.status !== 'inactive') {
+            await db.collection('rooms').doc(room._id).remove()
+            deletedCount += 1
+          }
         } catch (roomError) {
           failedCount += 1
         }

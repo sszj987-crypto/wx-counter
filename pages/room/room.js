@@ -418,6 +418,30 @@ Page({
    */
   async joinRoom(roomId) {
     try {
+      const goHomeWithDeletedTip = () => {
+        wx.showToast({
+          title: '房间已删除',
+          icon: 'none'
+        });
+        setTimeout(() => {
+          wx.reLaunch({
+            url: '/pages/home/home'
+          });
+        }, 1500);
+      };
+
+      const goSettlementWithRoomId = (room) => {
+        wx.redirectTo({
+          url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
+            roomId: room._id,
+            roomNumber: room.roomNumber,
+            players: room.players,
+            rate: room.rate || 1,
+            settlementTime: room.settlementTime || room.closeTime || new Date()
+          }))}`
+        });
+      };
+
       // 尝试从缓存获取openId
       const app = getApp();
       const cacheManager = app.globalData.cacheManager;
@@ -444,26 +468,9 @@ Page({
       try {
         roomResult = await wx.cloud.database().collection('rooms').doc(roomId).get();
       } catch (error) {
-        // 检查是否是因为房间状态为inactive导致的权限错误
         if (error.errMsg && error.errMsg.includes('permission denied')) {
-          // 尝试获取房间数据，检查状态
-          try {
-            const inactiveRoomResult = await wx.cloud.database().collection('rooms').doc(roomId).get();
-            if (inactiveRoomResult.data && inactiveRoomResult.data.status === 'inactive') {
-              // 房间已结算，跳转到结算页面
-              wx.redirectTo({
-                url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
-                  roomId: inactiveRoomResult.data._id,
-                  roomNumber: inactiveRoomResult.data.roomNumber,
-                  players: inactiveRoomResult.data.players,
-                  rate: 1, // 默认倍率
-                  settlementTime: inactiveRoomResult.data.settlementTime
-                }))}`
-              });
-              return;
-            }
-          } catch (checkError) {
-          }
+          goHomeWithDeletedTip();
+          return;
         }
         throw error;
       }
@@ -476,16 +483,7 @@ Page({
       
       // 检查房间状态是否为inactive
       if (room.status === 'inactive') {
-        // 房间已结算，跳转到结算页面
-        wx.redirectTo({
-          url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
-            roomId: room._id,
-            roomNumber: room.roomNumber,
-            players: room.players,
-            rate: 1, // 默认倍率
-            settlementTime: room.settlementTime
-          }))}`
-        });
+        goSettlementWithRoomId(room);
         return;
       }
 
@@ -627,34 +625,36 @@ Page({
       
       // 检查是否是因为房间状态为inactive导致的错误
       if (error.errMsg && (error.errMsg.includes('permission denied') || error.errMsg.includes('文档不存在'))) {
-        // 房间可能已结算，再次尝试获取房间信息
         try {
           const inactiveRoomResult = await wx.cloud.database().collection('rooms').doc(roomId).get();
           if (inactiveRoomResult.data && inactiveRoomResult.data.status === 'inactive') {
-            // 房间已结算，跳转到结算页面
-            wx.redirectTo({
-              url: `/pages/settlement/settlement?data=${encodeURIComponent(JSON.stringify({
-                roomId: inactiveRoomResult.data._id,
-                roomNumber: inactiveRoomResult.data.roomNumber,
-                players: inactiveRoomResult.data.players,
-                rate: 1, // 默认倍率
-                settlementTime: inactiveRoomResult.data.settlementTime
-              }))}`
-            });
+            goSettlementWithRoomId(inactiveRoomResult.data);
             return;
           }
         } catch (checkError) {
         }
+        wx.showToast({
+          title: '房间已删除',
+          icon: 'none'
+        });
+        setTimeout(() => {
+          wx.reLaunch({
+            url: '/pages/home/home'
+          });
+        }, 1500);
+        return;
       }
       
       // 检查是否是因为房间不存在导致的错误
       if (error.message && (error.message.includes('房间不存在') || error.message.includes('文档不存在'))) {
         wx.showToast({
-          title: '房间不存在或已删除',
+          title: '房间已删除',
           icon: 'none'
         });
         setTimeout(() => {
-          wx.navigateBack();
+          wx.reLaunch({
+            url: '/pages/home/home'
+          });
         }, 1500);
         return;
       }
