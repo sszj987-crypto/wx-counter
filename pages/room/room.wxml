@@ -136,7 +136,7 @@
 
 <!-- 给分弹窗 -->
 <view class="modal-overlay {{largeTextEnabled ? 'large-text' : ''}}" wx:if="{{transferModal.show}}" bindtap="hideTransferModal">
-  <view class="modal-content" catchtap="" style="transform: translateY(-{{transferModal.keyboardHeight ? transferModal.keyboardHeight * 0.4 : 0}}px); transition: transform 0.2s;">
+  <view class="modal-content" catchtap="" style="transform: translateY(-{{transferModal.keyboardHeight ? transferModal.keyboardHeight * 0.2 : 0}}px); transition: transform 0.2s;">
     <view class="modal-header">
       <view class="modal-title">给 {{transferModal.targetPlayer && transferModal.targetPlayer.nickName ? transferModal.targetPlayer.nickName : '玩家'}} 加分</view>
       <view class="modal-close" bindtap="hideTransferModal">×</view>
