@@ -1003,6 +1003,20 @@ Page({
     }
   },
 
+  onTransferInputFocus(e) {
+    if (e && e.detail && e.detail.height) {
+      this.setData({
+        'transferModal.keyboardHeight': e.detail.height
+      });
+    }
+  },
+
+  onTransferInputBlur() {
+    this.setData({
+      'transferModal.keyboardHeight': 0
+    });
+  },
+
   /**
    * 输入分数 - 带最大值限制
    */

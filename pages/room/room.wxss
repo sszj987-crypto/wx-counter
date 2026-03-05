@@ -474,7 +474,7 @@ page {
   width: 80%;
   max-width: 500rpx;
   overflow: hidden;
-  margin-top: -40rpx;
+  /* margin-top: -40rpx; */
 }
 
 .modal-header {
