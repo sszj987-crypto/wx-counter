@@ -19,6 +19,11 @@ Page({
       targetPlayer: null,
       score: ''
     },
+    batchTransferModal: {
+      show: false,
+      players: [],
+      keyboardHeight: 0
+    },
     settlementModal: {
       show: false,
       rate: '1'
@@ -921,6 +926,162 @@ Page({
     
     // 启动监听器
     startWatcher();
+  },
+
+  /**
+   * 显示批量给分弹窗
+   */
+  showBatchTransferModal() {
+    if (!this.data.roomData || !this.data.currentUserOpenId) {
+      return;
+    }
+
+    const otherPlayers = this.data.roomData.players
+      .filter(p => p.openId !== this.data.currentUserOpenId)
+      .map(p => ({
+        ...p,
+        score: '' // 初始给分为空
+      }));
+
+    if (otherPlayers.length === 0) {
+      wx.showToast({
+        title: '没有其他玩家可给分',
+        icon: 'none'
+      });
+      return;
+    }
+
+    this.setData({
+      'batchTransferModal.show': true,
+      'batchTransferModal.players': otherPlayers,
+      'batchTransferModal.keyboardHeight': 0
+    });
+  },
+
+  /**
+   * 隐藏批量给分弹窗
+   */
+  hideBatchTransferModal() {
+    if (this.data.isTransferring) return;
+    
+    this.setData({
+      'batchTransferModal.show': false,
+      'batchTransferModal.players': [],
+      'batchTransferModal.keyboardHeight': 0
+    });
+  },
+
+  /**
+   * 批量给分输入处理
+   */
+  onBatchScoreInput(e) {
+    const index = e.currentTarget.dataset.index;
+    let value = e.detail.value;
+    
+    // 过滤非数字
+    value = value.replace(/[^0-9]/g, '');
+    
+    // 限制最大值
+    const MAX_SCORE = 100000;
+    if (value && parseInt(value) > MAX_SCORE) {
+      value = String(MAX_SCORE);
+      wx.showToast({
+        title: `最大值为${MAX_SCORE}`,
+        icon: 'none'
+      });
+    }
+
+    const key = `batchTransferModal.players[${index}].score`;
+    this.setData({
+      [key]: value
+    });
+  },
+
+  onBatchInputFocus(e) {
+    if (e && e.detail && e.detail.height) {
+      this.setData({
+        'batchTransferModal.keyboardHeight': e.detail.height
+      });
+    }
+  },
+
+  onBatchInputBlur() {
+    this.setData({
+      'batchTransferModal.keyboardHeight': 0
+    });
+  },
+
+  /**
+   * 确认批量给分
+   */
+  async confirmBatchTransfer() {
+    if (this.data.isTransferring) return;
+
+    const transfers = this.data.batchTransferModal.players
+      .filter(p => p.score && parseInt(p.score) > 0)
+      .map(p => ({
+        toPlayerOpenId: p.openId,
+        score: parseInt(p.score)
+      }));
+
+    if (transfers.length === 0) {
+      wx.showToast({
+        title: '请输入至少一个有效分数',
+        icon: 'none'
+      });
+      return;
+    }
+
+    wx.showLoading({
+      title: '处理中...',
+      mask: true
+    });
+    this.setData({ isTransferring: true });
+
+    try {
+      let result;
+      let attempt = 0;
+      const maxAttempts = 5;
+      while (attempt < maxAttempts) {
+        attempt += 1;
+        try {
+          result = await wx.cloud.callFunction({
+            name: 'transferScore',
+            data: {
+              roomId: this.data.roomId,
+              transfers: transfers
+            }
+          });
+          break;
+        } catch (error) {
+          if (attempt >= maxAttempts) throw error;
+          await new Promise(resolve => setTimeout(resolve, attempt * 200));
+        }
+      }
+
+      wx.hideLoading();
+      this.setData({ isTransferring: false });
+
+      if (result && result.result && result.result.success) {
+        wx.showToast({
+          title: '批量给分成功',
+          icon: 'success'
+        });
+        
+        this.hideBatchTransferModal();
+        await this.refreshRoomDataAfterTransfer();
+      } else {
+        throw new Error(result?.result?.error || '给分失败');
+      }
+    } catch (error) {
+      console.error('批量给分失败:', error);
+      wx.hideLoading();
+      this.setData({ isTransferring: false });
+      wx.showToast({
+        title: error.message || '给分失败，请重试',
+        icon: 'none'
+      });
+    }
   },
 
   /**

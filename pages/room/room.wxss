@@ -352,14 +352,12 @@ page {
   flex: 2;
   justify-content: flex-start;
   position: relative;
+  padding-left: 32rpx;
 }
 
+/* 移除占位伪元素，因为不再显示头像 */
 .header-cell.player::before {
-  content: '';
-  width: 60rpx;
-  height: 60rpx;
-  margin-right: 20rpx;
-  display: inline-block;
+  display: none;
 }
 
 .header-cell.score {
@@ -379,7 +377,7 @@ page {
 .table-cell.player-cell {
   flex: 2;
   justify-content: flex-start;
-  padding-left: 20rpx;
+  padding-left: 32rpx;
 }
 
 .player-avatar {
@@ -401,11 +399,13 @@ page {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: inline-block;
+}
+
+.player-name.clickable {
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 4rpx;
-  text-decoration-thickness: 1rpx;
-  text-decoration-color: #07c160;
+  border-bottom: 2rpx solid #07c160;
+  padding-bottom: 4rpx;
 }
 
 .table-cell.score-cell {
@@ -553,6 +553,74 @@ page {
   background-color: #fff;
   border-radius: 4rpx;
   min-width: 200rpx;
+}
+
+/* 批量给分样式 */
+.batch-button {
+  background: #28a745; /* 统一使用绿色 */
+}
+
+.player-name-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.self-tag {
+  font-size: 24rpx;
+  color: #999;
+  margin-left: 10rpx;
+}
+
+.batch-modal-content {
+  background: white;
+  border-radius: 16rpx;
+  width: 90%;
+  max-width: 600rpx;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.batch-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20rpx;
+  box-sizing: border-box; /* 确保padding不会撑大宽度 */
+}
+
+.batch-item {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+  width: 100%; /* 确保宽度不超出父容器 */
+  box-sizing: border-box;
+}
+
+.batch-item:last-child {
+  border-bottom: none;
+}
+
+.batch-player-name {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333;
+  margin-right: 20rpx; /* 增加间距 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.batch-input {
+  width: 140rpx; /* 稍微减小宽度 */
+  height: 60rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 8rpx;
+  padding: 0 10rpx;
+  font-size: 28rpx;
+  text-align: center;
+  box-sizing: border-box; /* 包含padding和border */
 }
 
 /* 底部操作按钮 */
