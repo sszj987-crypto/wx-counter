@@ -22,11 +22,19 @@ const _ = db.command
  * @param {Array} event.transfers - 批量转移列表 [{toPlayerOpenId, score}]（批量给分使用）
  */
 exports.main = async (event, context) => {
-  const { roomId, toPlayerOpenId, score, transfers } = event
+  let { roomId, toPlayerOpenId, score, transfers } = event
   const wxContext = cloud.getWXContext()
   
+  // 解析 JSON 字符串
+  if (typeof transfers === 'string') {
+    try {
+      transfers = JSON.parse(transfers);
+    } catch (e) {
+      transfers = null;
+    }
+  }
+  
   try {
-    // 构造标准化转移列表
     let transferList = []
     if (transfers && Array.isArray(transfers)) {
       transferList = transfers.filter(t => t.score && Number(t.score) > 0)

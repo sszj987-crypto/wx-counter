@@ -933,6 +933,10 @@ Page({
    */
   showBatchTransferModal() {
     if (!this.data.roomData || !this.data.currentUserOpenId) {
+      wx.showToast({
+        title: '房间信息加载中',
+        icon: 'none'
+      });
       return;
     }
 
@@ -940,7 +944,7 @@ Page({
       .filter(p => p.openId !== this.data.currentUserOpenId)
       .map(p => ({
         ...p,
-        score: '' // 初始给分为空
+        score: ''
       }));
 
     if (otherPlayers.length === 0) {
@@ -1049,7 +1053,7 @@ Page({
             name: 'transferScore',
             data: {
               roomId: this.data.roomId,
-              transfers: transfers
+              transfers: JSON.stringify(transfers)
             }
           });
           break;

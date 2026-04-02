@@ -125,7 +125,7 @@
       
       <view class="modal-footer">
         <button class="modal-button cancel" bindtap="hideSettlementModal">取消</button>
-        <button class="modal-button confirm" bindtap="confirmSettlement">确定</button>
+        <button class="modal-button confirm" bindtap="confirmSettlement" disabled="{{isSettling}}">确定</button>
       </view>
     </view>
   </view>
@@ -142,7 +142,7 @@
 </view>
 
 <!-- 批量给分弹窗 -->
-<view class="modal-overlay {{largeTextEnabled ? 'large-text' : ''}}" wx:if="{{batchTransferModal.show}}" bindtap="hideBatchTransferModal">
+<view class="modal-overlay {{largeTextEnabled ? 'large-text' : ''}}" wx:if="{{batchTransferModal.show}}" catchtouchmove="true">
   <view class="batch-modal-content" catchtap="" style="transform: translateY(-{{batchTransferModal.keyboardHeight ? batchTransferModal.keyboardHeight * 0.2 : 0}}px); transition: transform 0.2s;">
     <view class="modal-header">
       <view class="modal-title">批量给分</view>
@@ -177,7 +177,7 @@
 </view>
 
 <!-- 给分弹窗 -->
-<view class="modal-overlay {{largeTextEnabled ? 'large-text' : ''}}" wx:if="{{transferModal.show}}" bindtap="hideTransferModal">
+<view class="modal-overlay {{largeTextEnabled ? 'large-text' : ''}}" wx:if="{{transferModal.show}}" catchtouchmove="true">
   <view class="modal-content" catchtap="" style="transform: translateY(-{{transferModal.keyboardHeight ? transferModal.keyboardHeight * 0.2 : 0}}px); transition: transform 0.2s;">
     <view class="modal-header">
       <view class="modal-title">给 {{transferModal.targetPlayer && transferModal.targetPlayer.nickName ? transferModal.targetPlayer.nickName : '玩家'}} 加分</view>
