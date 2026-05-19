@@ -28,9 +28,21 @@ Page({
       show: false,
       rate: '1'
     },
-    isTeaServiceEnabled: false,
-    teaServicePlayerId: null,
-    isSettling: false, // 防止重复结算的状态标志
+    roomFeeSettingsModal: {
+      show: false,
+      total: '100',
+      fullX: '10',
+      drawY: '1'
+    },
+    isRoomFeeEnabled: false,
+    roomFeeConfig: {
+      total: 100,
+      fullX: 10,
+      drawY: 1,
+      enabled: false
+    },
+    roomFeePlayerId: null,
+    isSettling: false,
     isExitingRoom: false,
     largeTextEnabled: false,
     showSettingsPanel: false,
@@ -87,7 +99,11 @@ Page({
   onPlayerNameTap(e) {
     const openId = e.currentTarget.dataset.openid;
     
-    // 只有点击自己的名字才能跳转到个人资料页面
+    if (openId && openId.startsWith('room_fee_')) {
+      this.showRoomFeeSettings();
+      return;
+    }
+    
     if (openId === this.data.currentUserOpenId) {
       wx.navigateTo({
         url: '/pages/profile/profile'
@@ -338,7 +354,7 @@ Page({
         }],
 
         totalRounds: 0,
-        teaServiceScore: 0 // 新增：台位分数记忆
+        roomFeeScore: 0
       };
 
       await wx.cloud.database().collection('rooms').add({
@@ -395,8 +411,8 @@ Page({
         }
       }
       
-      // 检查是否存在台位/茶水玩家
-      await this.checkTeaServiceStatus(roomData);
+      // 检查是否存在房费玩家
+      await this.checkRoomFeeStatus(roomData);
       
       // 只有在还没有监听器的情况下才开始监听房间数据
       if (!this.watcher) {
@@ -506,8 +522,8 @@ Page({
           roomId: roomId,
           roomData: room
         });
-        // 检查是否存在台位/茶水玩家
-        await this.checkTeaServiceStatus(room);
+        // 检查是否存在房费玩家
+        await this.checkRoomFeeStatus(room);
         // 只有在还没有监听器的情况下才开始监听房间数据
         if (!this.watcher) {
           this.watchRoomData();
@@ -618,8 +634,8 @@ Page({
       
       // 添加延迟确保UI正确刷新
       setTimeout(() => {
-        // 检查是否存在台位/茶水玩家
-        this.checkTeaServiceStatus(updatedRoomData);
+        // 检查是否存在房费玩家
+        this.checkRoomFeeStatus(updatedRoomData);
         // 只有在还没有监听器的情况下才开始监听房间数据
         if (!this.watcher) {
           this.watchRoomData();
@@ -687,60 +703,70 @@ Page({
   },
 
   /**
-   * 切换台位/茶水开关
+   * 切换房费开关
    */
-  async toggleTeaService() {
+  async toggleRoomFee() {
     try {
-      const newState = !this.data.isTeaServiceEnabled;
+      const newState = !this.data.isRoomFeeEnabled;
       const roomId = this.data.roomId;
       if (!roomId) {
         return;
       }
 
       if (newState) {
-        const teaServicePlayer = {
-          nickName: '台位/茶水',
+        const roomFeePlayer = {
+          nickName: '房费',
           avatarUrl: '/images/default-avatar.png',
-          openId: 'tea_service_' + Date.now(),
-          score: this.data.roomData.teaServiceScore || 0 // 恢复之前记忆的分数
+          openId: 'room_fee_' + roomId,
+          score: 0
         };
 
         await db.collection('rooms').doc(roomId).update({
           data: {
-            players: db.command.push(teaServicePlayer),
-            teaServiceScore: teaServicePlayer.score
+            players: db.command.push(roomFeePlayer),
+            roomFeeConfig: {
+              total: this.data.roomFeeConfig.total,
+              fullX: this.data.roomFeeConfig.fullX,
+              drawY: this.data.roomFeeConfig.drawY,
+              enabled: true
+            }
           }
         });
         
         this.setData({
-          isTeaServiceEnabled: true,
-          teaServicePlayerId: teaServicePlayer.openId
+          isRoomFeeEnabled: true,
+          roomFeePlayerId: roomFeePlayer.openId,
+          'roomFeeConfig.enabled': true
         });
+
+        this.showRoomFeeSettings();
       } else {
         const roomResult = await db.collection('rooms').doc(roomId).get();
         const roomData = roomResult.data || {};
-        const teaServicePlayer = (roomData.players || []).find(
-          player => player.openId === this.data.teaServicePlayerId
+        const roomFeePlayer = (roomData.players || []).find(
+          player => player.openId === this.data.roomFeePlayerId || player.nickName === '房费'
         );
-        const teaServiceScore = teaServicePlayer ? teaServicePlayer.score : 0;
-        const teaServiceOpenId = teaServicePlayer ? teaServicePlayer.openId : this.data.teaServicePlayerId;
+        const roomFeeScore = roomFeePlayer ? roomFeePlayer.score : 0;
+        const roomFeeOpenId = roomFeePlayer ? roomFeePlayer.openId : this.data.roomFeePlayerId;
         const updateData = {
-          teaServiceScore: teaServiceScore
+          roomFeeScore: roomFeeScore,
+          'roomFeeConfig.enabled': false
         };
-        if (teaServiceOpenId) {
-          updateData.players = db.command.pull({ openId: teaServiceOpenId });
+        if (roomFeeOpenId) {
+          updateData.players = db.command.pull({ openId: roomFeeOpenId });
         }
         await db.collection('rooms').doc(roomId).update({
           data: updateData
         });
         
         this.setData({
-          isTeaServiceEnabled: false,
-          teaServicePlayerId: null
+          isRoomFeeEnabled: false,
+          roomFeePlayerId: null,
+          'roomFeeConfig.enabled': false
         });
       }
     } catch (error) {
-      console.error('切换台位/茶水开关失败:', error);
+      console.error('切换房费开关失败:', error);
       wx.showToast({
         title: '操作失败',
         icon: 'error'
@@ -749,25 +775,148 @@ Page({
   },
 
   /**
-   * 检查台位/茶水玩家状态
+   * 显示房费设置弹窗
    */
-  async checkTeaServiceStatus(roomData) {
+  showRoomFeeSettings() {
+    const config = this.data.roomFeeConfig;
+    this.setData({
+      'roomFeeSettingsModal.show': true,
+      'roomFeeSettingsModal.total': String(config.total != null ? config.total : 100),
+      'roomFeeSettingsModal.fullX': String(config.fullX != null ? config.fullX : 10),
+      'roomFeeSettingsModal.drawY': String(config.drawY != null ? config.drawY : 1)
+    });
+  },
+
+  /**
+   * 隐藏房费设置弹窗
+   */
+  hideRoomFeeSettings() {
+    this.setData({
+      'roomFeeSettingsModal.show': false
+    });
+  },
+
+  /**
+   * 阻止弹窗关闭
+   */
+  preventClose() {
+    // 空函数，仅用于阻止事件冒泡
+  },
+
+  /**
+   * 房费总额输入
+   */
+  onRoomFeeTotalInput(e) {
+    let value = e.detail.value.replace(/[^0-9]/g, '');
+    this.setData({
+      'roomFeeSettingsModal.total': value
+    });
+  },
+
+  /**
+   * 满X元输入
+   */
+  onRoomFeeFullXInput(e) {
+    let value = e.detail.value.replace(/[^0-9]/g, '');
+    this.setData({
+      'roomFeeSettingsModal.fullX': value
+    });
+  },
+
+  /**
+   * 抽Y元输入
+   */
+  onRoomFeeDrawYInput(e) {
+    let value = e.detail.value.replace(/[^0-9]/g, '');
+    this.setData({
+      'roomFeeSettingsModal.drawY': value
+    });
+  },
+
+  /**
+   * 保存房费设置
+   */
+  async saveRoomFeeSettings() {
+    const { total, fullX, drawY } = this.data.roomFeeSettingsModal;
+    
+    const totalValue = parseInt(total) || 100;
+    const fullXValue = parseInt(fullX) || 10;
+    const drawYValue = parseInt(drawY) || 0;
+    
+    if (totalValue <= 0) {
+      wx.showToast({ title: '房费总额必须大于0', icon: 'none' });
+      return;
+    }
+    if (fullXValue <= 0) {
+      wx.showToast({ title: '满X元必须大于0', icon: 'none' });
+      return;
+    }
+    if (drawYValue < 0) {
+      wx.showToast({ title: '抽Y元不能为负数', icon: 'none' });
+      return;
+    }
+    if (drawYValue > fullXValue) {
+      wx.showToast({ title: '抽Y元不能大于满X元', icon: 'none' });
+      return;
+    }
+    
+    try {
+      const roomId = this.data.roomId;
+      if (!roomId) {
+        wx.showToast({ title: '房间信息错误', icon: 'none' });
+        return;
+      }
+      
+      await db.collection('rooms').doc(roomId).update({
+        data: {
+          roomFeeConfig: {
+            total: totalValue,
+            fullX: fullXValue,
+            drawY: drawYValue,
+            enabled: this.data.isRoomFeeEnabled
+          }
+        }
+      });
+      
+      this.setData({
+        'roomFeeConfig.total': totalValue,
+        'roomFeeConfig.fullX': fullXValue,
+        'roomFeeConfig.drawY': drawYValue,
+        'roomFeeSettingsModal.show': false
+      });
+      
+      wx.showToast({ title: '保存成功', icon: 'success' });
+    } catch (error) {
+      console.error('保存房费设置失败:', error);
+      wx.showToast({ title: '保存失败', icon: 'error' });
+    }
+  },
+
+  /**
+   * 检查房费玩家状态
+   */
+  async checkRoomFeeStatus(roomData) {
     if (!roomData || !roomData.players) return;
     
-    // 查找台位/茶水玩家（通过nickName或openId前缀识别）
-    const teaServicePlayer = roomData.players.find(player => 
-      player.nickName === '台位/茶水' || player.openId.startsWith('tea_service_')
+    const roomFeePlayer = roomData.players.find(player => 
+      player.nickName === '房费' || player.openId.startsWith('room_fee_')
     );
     
-    if (teaServicePlayer) {
+    if (roomFeePlayer) {
       this.setData({
-        isTeaServiceEnabled: true,
-        teaServicePlayerId: teaServicePlayer.openId
+        isRoomFeeEnabled: true,
+        roomFeePlayerId: roomFeePlayer.openId
       });
+      
+      if (roomData.roomFeeConfig) {
+        this.setData({
+          roomFeeConfig: roomData.roomFeeConfig
+        });
+      }
     } else {
       this.setData({
-        isTeaServiceEnabled: false,
-        teaServicePlayerId: null
+        isRoomFeeEnabled: false,
+        roomFeePlayerId: null
       });
     }
   },
@@ -839,8 +988,8 @@ Page({
               });
             }
             
-            // 检查台位/茶水状态
-            await this.checkTeaServiceStatus(updatedRoomData);
+            // 检查房费状态
+            await this.checkRoomFeeStatus(updatedRoomData);
           }
         },
         onError: async (error) => {
@@ -1501,10 +1650,10 @@ Page({
         return;
       }
 
-      const isTeaServicePlayer = (player) =>
-        player.nickName === '台位/茶水' || (typeof player.openId === 'string' && player.openId.startsWith('tea_service_'));
+      const isRoomFeePlayer = (player) =>
+        player.nickName === '房费' || (typeof player.openId === 'string' && player.openId.startsWith('room_fee_'));
 
-      const realPlayers = room.players.filter((p) => !isTeaServicePlayer(p));
+      const realPlayers = room.players.filter((p) => !isRoomFeePlayer(p));
 
       const stillInRoom = realPlayers.some((p) => p.openId === currentUserOpenId);
 
@@ -1686,7 +1835,7 @@ Page({
         settlementTime: new Date(),
         players: this.data.roomData.players,
         rate: rateValue,
-        teaServiceScore: this.data.roomData.teaServiceScore || 0
+        roomFeeScore: this.data.roomData.roomFeeScore || 0
       };
 
       // 显示加载提示
@@ -1812,19 +1961,19 @@ Page({
       // 为每个参与者更新数据
       for (const playerResult of playerResults) {
         
-        // 检查是否为茶水玩家（茶水玩家不需要创建或更新用户记录）
-        const isTeaServicePlayer = playerResult.nickName === '台位/茶水' || playerResult.openId.startsWith('tea_service_');
+        // 检查是否为房费玩家（房费玩家不需要创建或更新用户记录）
+        const isRoomFeePlayer = playerResult.nickName === '房费' || playerResult.openId.startsWith('room_fee_');
         
-        if (isTeaServicePlayer) {
-          continue; // 跳过茶水玩家，处理下一个玩家
+        if (isRoomFeePlayer) {
+          continue; // 跳过房费玩家，处理下一个玩家
         }
         
         try {
-          // 获取同房间其他玩家的openid（排除当前玩家和茶位/茶水玩家）
+          // 获取同房间其他玩家的openid（排除当前玩家和房费玩家）
           const gamemates = playerResults
             .filter(p => p.openId !== playerResult.openId && 
-                       p.nickName !== '台位/茶水' && 
-                       !p.openId.startsWith('tea_service_'))
+                       p.nickName !== '房费' && 
+                       !p.openId.startsWith('room_fee_'))
             .map(p => ({
               openId: p.openId,
               gameCount: 1 // 新增对局计数字段
@@ -1957,8 +2106,8 @@ Page({
             // 同局人信息
             gamemates: playerResults
               .filter(p => p.openId !== playerResult.openId && 
-                         p.nickName !== '台位/茶水' && 
-                         !p.openId.startsWith('tea_service_'))
+                         p.nickName !== '房费' && 
+                         !p.openId.startsWith('room_fee_'))
               .map(p => ({
                 nickName: p.nickName,
                 score: p.score || 0,

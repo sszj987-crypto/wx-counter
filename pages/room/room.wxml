@@ -37,10 +37,10 @@
   <view class="settings-overlay" wx:if="{{showSettingsPanel}}" bindtap="closeSettingsPanel"></view>
   <view class="settings-panel {{largeTextEnabled ? 'large-text' : ''}}" wx:if="{{showSettingsPanel}}" catchtap="">
     <view class="setting-option">
-      <text class="switch-label">台位/茶水</text>
+      <text class="switch-label">房费</text>
       <switch 
-        checked="{{isTeaServiceEnabled}}" 
-        bindchange="toggleTeaService"
+        checked="{{isRoomFeeEnabled}}" 
+        bindchange="toggleRoomFee"
         type="switch"
       />
     </view>
@@ -76,7 +76,7 @@
             <view class="table-cell player-cell">
               <view class="player-info">
                 <view class="player-name-wrapper">
-                  <view class="player-name {{item.openId === currentUserOpenId ? 'clickable' : ''}}" bindtap="onPlayerNameTap" data-openid="{{item.openId}}">{{item.nickName}}</view>
+                  <view class="player-name {{item.openId === currentUserOpenId ? 'clickable' : ''}} {{item.nickName === '房费' ? 'room-fee-name' : ''}}" bindtap="onPlayerNameTap" data-openid="{{item.openId}}">{{item.nickName}}</view>
                   <view class="self-tag" wx:if="{{item.openId === currentUserOpenId}}">(自己)</view>
                 </view>
               </view>
@@ -104,6 +104,61 @@
           </view>
         </view>
       </scroll-view>
+    </view>
+  </view>
+
+  <!-- 房费设置弹窗 -->
+  <view class="modal-overlay" wx:if="{{roomFeeSettingsModal.show}}" catchtouchmove="true" bindtap="hideRoomFeeSettings">
+    <view class="modal-content" catchtap="preventClose">
+      <view class="modal-header">
+        <view class="modal-title">房费设置</view>
+        <view class="modal-close" bindtap="hideRoomFeeSettings">×</view>
+      </view>
+      
+      <view class="room-fee-settings">
+        <view class="setting-input-group">
+          <text class="setting-input-label">房费总额（元）</text>
+          <input 
+            class="setting-input"
+            type="number" 
+            placeholder="100" 
+            value="{{roomFeeSettingsModal.total}}"
+            bindinput="onRoomFeeTotalInput"
+          />
+        </view>
+        
+        <view class="setting-input-group">
+          <text class="setting-input-label">满X元</text>
+          <input 
+            class="setting-input"
+            type="number" 
+            placeholder="10" 
+            value="{{roomFeeSettingsModal.fullX}}"
+            bindinput="onRoomFeeFullXInput"
+          />
+        </view>
+        
+        <view class="setting-input-group">
+          <text class="setting-input-label">抽Y元</text>
+          <input 
+            class="setting-input"
+            type="number" 
+            placeholder="1" 
+            value="{{roomFeeSettingsModal.drawY}}"
+            bindinput="onRoomFeeDrawYInput"
+          />
+        </view>
+        
+        <view class="setting-rule">
+          <text class="setting-rule-text">规则：每次给分≥满X元时，从给分中抽取Y元作为房费</text>
+          <text class="setting-rule-text">房费达到总额后不再抽取</text>
+        </view>
+      </view>
+      
+      <view class="modal-footer">
+        <button class="modal-button cancel" bindtap="hideRoomFeeSettings">取消</button>
+        <button class="modal-button confirm" bindtap="saveRoomFeeSettings">保存</button>
+      </view>
     </view>
   </view>
 

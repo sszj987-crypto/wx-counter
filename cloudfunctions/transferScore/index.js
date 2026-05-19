@@ -67,6 +67,12 @@ exports.main = async (event, context) => {
         const newRecords = []
         let totalScoreOut = 0
 
+        // 检查房费配置
+        const roomFeeConfig = room.roomFeeConfig || null
+        const isRoomFeeEnabled = roomFeeConfig && roomFeeConfig.enabled === true
+        const roomFeePlayerIndex = isRoomFeeEnabled ? room.players.findIndex(p => p.nickName === '房费' || p.openId.startsWith('room_fee_')) : -1
+        let roomFeeScoreOut = 0
+
         for (const item of transferList) {
           const toPlayerIndex = room.players.findIndex(p => p.openId === item.toPlayerOpenId)
           if (toPlayerIndex === -1) {
@@ -76,12 +82,29 @@ exports.main = async (event, context) => {
             continue // 跳过给自己加分
           }
 
-          const delta = Number(item.score)
+          let delta = Number(item.score)
           if (!Number.isFinite(delta) || delta <= 0) {
             continue
           }
 
-          totalScoreOut += delta
+          // 房费抽水逻辑
+          let roomFeeDeduction = 0
+          if (isRoomFeeEnabled && roomFeePlayerIndex !== -1) {
+            const currentRoomFeeScore = room.players[roomFeePlayerIndex].score || 0
+            const roomFeeRemaining = roomFeeConfig.total - currentRoomFeeScore
+            
+            if (delta >= roomFeeConfig.fullX && roomFeeRemaining > 0) {
+              // 每满X抽Y
+              const fullCount = Math.floor(delta / roomFeeConfig.fullX)
+              const totalDeduction = fullCount * roomFeeConfig.drawY
+              // 不能超过剩余房费
+              roomFeeDeduction = Math.min(totalDeduction, roomFeeRemaining)
+              delta = delta - roomFeeDeduction
+              roomFeeScoreOut += roomFeeDeduction
+            }
+          }
+
+          totalScoreOut += delta + roomFeeDeduction
 
           // 记录每笔转账记录
           newRecords.push({
@@ -93,10 +116,20 @@ exports.main = async (event, context) => {
             createTime: new Date()
           })
 
+          // 如果有房费扣除，记录房费记录
+          if (roomFeeDeduction > 0 && roomFeePlayerIndex !== -1) {
+            newRecords.push({
+              fromPlayerOpenId: wxContext.OPENID,
+              toPlayerOpenId: room.players[roomFeePlayerIndex].openId,
+              score: roomFeeDeduction,
+              fromPlayerNickName: room.players[fromPlayerIndex].nickName,
+              toPlayerNickName: '房费',
+              createTime: new Date(),
+              isRoomFee: true
+            })
+          }
+
           // 累加接收方分数
-          // 注意：如果有多个针对同一人的给分（虽然UI限制了，但逻辑上要健壮），需要累加
-          // 但 _.inc 只能用一次，所以这里如果有多笔给同一人，需要先合并逻辑或者假设输入列表不重复
-          // 假设输入列表每个toPlayerOpenId只出现一次
           updateData[`players.${toPlayerIndex}.score`] = _.inc(delta)
         }
 
@@ -106,6 +139,11 @@ exports.main = async (event, context) => {
 
         // 扣除发送方总分
         updateData[`players.${fromPlayerIndex}.score`] = _.inc(-totalScoreOut)
+
+        // 累加房费玩家分数
+        if (roomFeeScoreOut > 0 && roomFeePlayerIndex !== -1) {
+          updateData[`players.${roomFeePlayerIndex}.score`] = _.inc(roomFeeScoreOut)
+        }
 
         // 添加记录
         if (!room.records) {

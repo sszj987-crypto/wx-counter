@@ -405,7 +405,7 @@ Page({
         }],
 
         totalRounds: 0,
-        teaServiceScore: 0
+        roomFeeScore: 0
       };
       
       // 保存到数据库 - 改进错误处理和Promise链

@@ -18,8 +18,8 @@ exports.main = async (event, context) => {
     return players.some(p => Number(p.score || 0) !== 0)
   }
 
-  const isTeaServicePlayer = player => {
-    return player && (player.nickName === '台位/茶水' || String(player.openId || '').startsWith('tea_service_'))
+  const isRoomFeePlayer = player => {
+    return player && (player.nickName === '房费' || String(player.openId || '').startsWith('room_fee_'))
   }
 
   const computePlayerResults = (players, rate) => {
@@ -124,7 +124,7 @@ exports.main = async (event, context) => {
     const netScore = totalScore
 
     const gamemates = playerResults
-      .filter(p => p.openId !== playerResult.openId && !isTeaServicePlayer(p))
+      .filter(p => p.openId !== playerResult.openId && !isRoomFeePlayer(p))
       .map(p => ({ openId: p.openId, gameCount: 1 }))
     const currentGamemates = currentUserData.gamemate || []
     const updatedGamemates = [...currentGamemates]
@@ -185,7 +185,7 @@ exports.main = async (event, context) => {
     }
     const playerResults = computePlayerResults(players, rate)
     for (const playerResult of playerResults) {
-      if (isTeaServicePlayer(playerResult)) {
+      if (isRoomFeePlayer(playerResult)) {
         continue
       }
       await updateUserStats(playerResult, playerResults, settlementData)
