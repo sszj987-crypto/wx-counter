@@ -204,7 +204,7 @@
       <view class="modal-close" bindtap="hideBatchTransferModal">×</view>
     </view>
     
-    <scroll-view class="batch-list" scroll-y="true">
+    <scroll-view class="batch-list" scroll-y="{{batchTransferModal.players.length > 4}}" style="max-height: {{batchTransferModal.players.length > 4 ? '50vh' : 'auto'}};">
       <view class="batch-item" wx:for="{{batchTransferModal.players}}" wx:key="openId">
         <view class="batch-player-name">{{item.nickName}}</view>
         <input 

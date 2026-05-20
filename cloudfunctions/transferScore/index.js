@@ -72,6 +72,7 @@ exports.main = async (event, context) => {
         const isRoomFeeEnabled = roomFeeConfig && roomFeeConfig.enabled === true
         const roomFeePlayerIndex = isRoomFeeEnabled ? room.players.findIndex(p => p.nickName === '房费' || p.openId.startsWith('room_fee_')) : -1
         let roomFeeScoreOut = 0
+        let roomFeeDirectScore = 0 // 房费玩家直接接收的分数
 
         for (const item of transferList) {
           const toPlayerIndex = room.players.findIndex(p => p.openId === item.toPlayerOpenId)
@@ -87,11 +88,11 @@ exports.main = async (event, context) => {
             continue
           }
 
-          // 房费抽水逻辑
+          // 房费抽水逻辑（给房费玩家转钱不抽水）
           let roomFeeDeduction = 0
-          if (isRoomFeeEnabled && roomFeePlayerIndex !== -1) {
+          if (isRoomFeeEnabled && roomFeePlayerIndex !== -1 && toPlayerIndex !== roomFeePlayerIndex) {
             const currentRoomFeeScore = room.players[roomFeePlayerIndex].score || 0
-            const roomFeeRemaining = roomFeeConfig.total - currentRoomFeeScore
+            const roomFeeRemaining = roomFeeConfig.total - currentRoomFeeScore - roomFeeScoreOut
             
             if (delta >= roomFeeConfig.fullX && roomFeeRemaining > 0) {
               // 每满X抽Y
@@ -129,8 +130,12 @@ exports.main = async (event, context) => {
             })
           }
 
-          // 累加接收方分数
-          updateData[`players.${toPlayerIndex}.score`] = _.inc(delta)
+          // 累加接收方分数（房费玩家单独处理）
+          if (toPlayerIndex === roomFeePlayerIndex) {
+            roomFeeDirectScore += delta
+          } else {
+            updateData[`players.${toPlayerIndex}.score`] = _.inc(delta)
+          }
         }
 
         if (totalScoreOut === 0) {
@@ -140,9 +145,9 @@ exports.main = async (event, context) => {
         // 扣除发送方总分
         updateData[`players.${fromPlayerIndex}.score`] = _.inc(-totalScoreOut)
 
-        // 累加房费玩家分数
-        if (roomFeeScoreOut > 0 && roomFeePlayerIndex !== -1) {
-          updateData[`players.${roomFeePlayerIndex}.score`] = _.inc(roomFeeScoreOut)
+        // 统一更新房费玩家分数（直接接收 + 抽水）
+        if (roomFeePlayerIndex !== -1 && (roomFeeDirectScore > 0 || roomFeeScoreOut > 0)) {
+          updateData[`players.${roomFeePlayerIndex}.score`] = _.inc(roomFeeDirectScore + roomFeeScoreOut)
         }
 
         // 添加记录

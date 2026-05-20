@@ -653,7 +653,8 @@ page {
   overflow-y: auto;
   padding: 20rpx;
   box-sizing: border-box;
-  min-height: 100rpx;
+  min-height: 500rpx;
+  max-height: 50vh;
 }
 
 .batch-item {
