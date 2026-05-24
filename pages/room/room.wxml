@@ -109,13 +109,33 @@
 
   <!-- 房费设置弹窗 -->
   <view class="modal-overlay" wx:if="{{roomFeeSettingsModal.show}}" catchtouchmove="true" bindtap="hideRoomFeeSettings">
-    <view class="modal-content" catchtap="preventClose">
+    <view class="modal-content" catchtap="onRoomFeeSettingsTap">
       <view class="modal-header">
         <view class="modal-title">房费设置</view>
         <view class="modal-close" bindtap="hideRoomFeeSettings">×</view>
       </view>
       
       <view class="room-fee-settings">
+        <view class="room-fee-status" wx:if="{{isRoomFeeEnabled}}">
+          <view class="room-fee-status-header">
+            <text class="room-fee-status-label">已收取房费</text>
+            <text class="room-fee-status-value">{{roomFeeCollected}}</text>
+          </view>
+          <view class="room-fee-withdraw-section" wx:if="{{roomFeeCollected > 0}}">
+            <view class="room-fee-withdraw-input-group">
+              <text class="room-fee-withdraw-label">取回金额</text>
+              <input 
+                class="room-fee-withdraw-input"
+                type="number" 
+                placeholder="全部取回" 
+                value="{{roomFeeWithdrawAmount}}"
+                bindinput="onRoomFeeWithdrawInput"
+              />
+            </view>
+            <button class="room-fee-withdraw-btn" bindtap="withdrawRoomFee">取回房费</button>
+          </view>
+        </view>
+        
         <view class="setting-input-group">
           <text class="setting-input-label">房费总额（元）</text>
           <input 

@@ -3,6 +3,7 @@
  * 支持实时同步、给分功能
  */
 const db = wx.cloud.database();
+const _ = db.command;
 
 Page({
   /**
@@ -42,6 +43,8 @@ Page({
       enabled: false
     },
     roomFeePlayerId: null,
+    roomFeeCollected: 0,
+    roomFeeWithdrawAmount: '',
     isSettling: false,
     isExitingRoom: false,
     largeTextEnabled: false,
@@ -779,11 +782,17 @@ Page({
    */
   showRoomFeeSettings() {
     const config = this.data.roomFeeConfig;
+    const roomFeePlayer = this.data.roomData?.players?.find(
+      p => p.nickName === '房费' || p.openId?.startsWith('room_fee_')
+    );
+    const roomFeeCollected = roomFeePlayer ? roomFeePlayer.score || 0 : 0;
     this.setData({
       'roomFeeSettingsModal.show': true,
       'roomFeeSettingsModal.total': String(config.total != null ? config.total : 100),
       'roomFeeSettingsModal.fullX': String(config.fullX != null ? config.fullX : 10),
-      'roomFeeSettingsModal.drawY': String(config.drawY != null ? config.drawY : 1)
+      'roomFeeSettingsModal.drawY': String(config.drawY != null ? config.drawY : 1),
+      roomFeeCollected: roomFeeCollected,
+      roomFeeWithdrawAmount: ''
     });
   },
 
@@ -791,6 +800,7 @@ Page({
    * 隐藏房费设置弹窗
    */
   hideRoomFeeSettings() {
+    wx.hideKeyboard();
     this.setData({
       'roomFeeSettingsModal.show': false
     });
@@ -801,6 +811,14 @@ Page({
    */
   preventClose() {
     // 空函数，仅用于阻止事件冒泡
+  },
+
+  /**
+   * 房费设置弹窗点击处理
+   */
+  onRoomFeeSettingsTap() {
+    // 收起键盘
+    wx.hideKeyboard();
   },
 
   /**
@@ -893,6 +911,85 @@ Page({
   },
 
   /**
+   * 取回金额输入
+   */
+  onRoomFeeWithdrawInput(e) {
+    let value = e.detail.value.replace(/[^0-9]/g, '');
+    this.setData({
+      roomFeeWithdrawAmount: value
+    });
+  },
+
+  /**
+   * 取回房费
+   */
+  async withdrawRoomFee() {
+    const roomFeeCollected = this.data.roomFeeCollected;
+    if (roomFeeCollected <= 0) {
+      wx.showToast({ title: '没有可取回的房费', icon: 'none' });
+      return;
+    }
+
+    const withdrawAmount = this.data.roomFeeWithdrawAmount ? parseInt(this.data.roomFeeWithdrawAmount) : roomFeeCollected;
+    
+    if (withdrawAmount <= 0) {
+      wx.showToast({ title: '取回金额必须大于0', icon: 'none' });
+      return;
+    }
+    if (withdrawAmount > roomFeeCollected) {
+      wx.showToast({ title: '取回金额不能超过已收取房费', icon: 'none' });
+      return;
+    }
+
+    wx.showModal({
+      title: '取回房费',
+      content: `确定要取回 ${withdrawAmount} 元房费吗？`,
+      success: async (res) => {
+        if (!res.confirm) return;
+
+        try {
+          const roomId = this.data.roomId;
+          const roomFeePlayerIndex = this.data.roomData.players.findIndex(
+            p => p.openId === this.data.roomFeePlayerId || p.nickName === '房费'
+          );
+
+          if (roomFeePlayerIndex === -1) {
+            wx.showToast({ title: '房费玩家不存在', icon: 'none' });
+            return;
+          }
+
+          const newScore = roomFeeCollected - withdrawAmount;
+          const myPlayerIndex = this.data.roomData.players.findIndex(
+            p => p.openId === this.data.currentUserOpenId
+          );
+
+          if (myPlayerIndex === -1) {
+            wx.showToast({ title: '您不在该房间中', icon: 'none' });
+            return;
+          }
+
+          await db.collection('rooms').doc(roomId).update({
+            data: {
+              [`players.${roomFeePlayerIndex}.score`]: newScore,
+              [`players.${myPlayerIndex}.score`]: _.inc(withdrawAmount)
+            }
+          });
+
+          this.setData({
+            roomFeeCollected: newScore,
+            roomFeeWithdrawAmount: ''
+          });
+
+          wx.showToast({ title: '取回成功', icon: 'success' });
+        } catch (error) {
+          console.error('取回房费失败:', error);
+          wx.showToast({ title: '取回失败', icon: 'error' });
+        }
+      }
+    });
+  },
+
+  /**
    * 检查房费玩家状态
    */
   async checkRoomFeeStatus(roomData) {
@@ -905,7 +1002,8 @@ Page({
     if (roomFeePlayer) {
       this.setData({
         isRoomFeeEnabled: true,
-        roomFeePlayerId: roomFeePlayer.openId
+        roomFeePlayerId: roomFeePlayer.openId,
+        roomFeeCollected: roomFeePlayer.score || 0
       });
       
       if (roomData.roomFeeConfig) {
