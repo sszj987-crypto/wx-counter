@@ -13,8 +13,8 @@
             bindtap="enterExistingRoom" 
             disabled="{{!hasUserInfo}}" 
             wx:if="{{activeRoom}}">
-      <view>进入房间{{activeRoom.roomNumber}}</view>
-      <view class="button-note">进入已有房间</view>
+      <view>{{activeRoom.status === 'settling' ? '查看结算' : '进入房间'}}{{activeRoom.roomNumber}}</view>
+      <view class="button-note">{{activeRoom.status === 'settling' ? '结算记录同步中' : '进入已有房间'}}</view>
     </button>
     
     <!-- 开始计分按钮 - 始终显示 -->

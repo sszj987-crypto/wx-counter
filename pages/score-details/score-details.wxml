@@ -11,7 +11,7 @@
   <view class="records-section" wx:if="{{!isLoading}}">
     <view class="section-title">
       <view class="title-text">给分记录</view>
-      <view class="record-count">{{scoreRecords.length}}条</view>
+      <view class="record-count">{{recordCount}}次</view>
     </view>
 
     <scroll-view 
@@ -20,6 +20,8 @@
       style="height: 70vh;" 
       enable-flex 
       enhanced 
+      bindscrolltolower="loadMoreData"
+      lower-threshold="100"
       show-scrollbar="false">
       <view class="records-container">
         <view class="records-empty" wx:if="{{scoreRecords.length === 0}}">
@@ -44,6 +46,7 @@
           </view>
         </view>
       </view>
+      <view wx:if="{{loadingMore}}">加载中...</view>
     </scroll-view>
   </view>
 </view>

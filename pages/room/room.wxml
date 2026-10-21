@@ -28,7 +28,7 @@
       </button>
       <button class="qrcode-button" bindtap="exitRoom">
         <view class="qrcode-icon">🚪</view>
-        <view class="qrcode-text">退出房间</view>
+        <view class="qrcode-text">离开房间</view>
       </button>
       
     </view>
@@ -58,7 +58,7 @@
   <view class="players-section" wx:if="{{roomData && !isCreating}}">
     <view class="section-title">
       <view class="title-text">玩家列表</view>
-      <view class="player-count">{{roomData.players.length}}人</view>
+      <view class="player-count">{{roomData.memberOpenIds.length}}人</view>
     </view>
 
     <view class="players-table">
@@ -89,7 +89,7 @@
             </view>
             
             <view class="table-cell action-cell">
-              <button wx:if="{{item.openId !== currentUserOpenId}}" 
+              <button wx:if="{{item.openId !== currentUserOpenId}}"
                       class="transfer-button" 
                       data-player="{{item}}" 
                       bindtap="showTransferModal">
@@ -116,7 +116,7 @@
       </view>
       
       <view class="room-fee-settings">
-        <view class="room-fee-status" wx:if="{{isRoomFeeEnabled}}">
+        <view class="room-fee-status" wx:if="{{roomFeePlayerId}}">
           <view class="room-fee-status-header">
             <text class="room-fee-status-label">已收取房费</text>
             <text class="room-fee-status-value">{{roomFeeCollected}}</text>
@@ -195,7 +195,7 @@
           focus="{{settlementModal.show}}"
           style="width: 100%; height: 80rpx; border: 1rpx solid #ddd; border-radius: 8rpx; padding: 0 20rpx; font-size: 32rpx; box-sizing: border-box;"
           confirm-type="done"
-          maxlength="5"/>
+          maxlength="8"/>
       </view>
       
       <view class="modal-footer">

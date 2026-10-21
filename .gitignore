@@ -1,1 +1,4 @@
 /cloudfunctions/createRoom/node_modules
+/database_export-rooms.json
+/database_export-users.json
+/migration-output/

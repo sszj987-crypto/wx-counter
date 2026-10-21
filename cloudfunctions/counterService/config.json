@@ -1,0 +1,6 @@
+{
+  "permissions": { "openapi": [] },
+  "triggers": [
+    { "name": "settlementTrigger", "type": "timer", "config": "0 */1 * * * * *" }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "read": "auth.openid in doc.memberOpenIds",
+  "write": false
+}

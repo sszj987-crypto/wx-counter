@@ -2,6 +2,8 @@
  * 个人资料页面
  * 更改头像昵称
  */
+const counter = require('../../utils/counter-service.js')
+
 Page({
   /**
    * 页面的初始数据
@@ -105,51 +107,13 @@ Page({
     this.setData({ isSaving: true })
 
     try {
-      // 更新全局用户信息
-      const app = getApp()
-      app.globalData.userInfo = userInfo
-
-      // 获取当前用户openId
-      const { result: userInfoResult } = await wx.cloud.callFunction({
-        name: 'getOpenId'
+      await counter.call('updateProfile', {
+        nickName: userInfo.nickName,
+        avatarUrl: userInfo.avatarUrl || '',
+        largeTextEnabled: !!wx.getStorageSync('largeTextEnabled')
       })
-      const openId = userInfoResult.openId
-
-      // 直接从数据库更新用户信息
-      const userRef = wx.cloud.database().collection('users').doc(openId)
-      const userDoc = await userRef.get().catch(() => ({ data: null }))
-
-      if (userDoc.data) {
-        await userRef.update({
-          data: {
-            nickName: userInfo.nickName,
-            avatarUrl: userInfo.avatarUrl || '',
-            updateTime: new Date()
-          }
-        })
-      } else {
-        await wx.cloud.database().collection('users').add({
-          data: {
-            _id: openId,
-            openId: openId,
-            nickName: userInfo.nickName,
-            avatarUrl: userInfo.avatarUrl || '',
-            gamedata: [], // 直接使用数组结构存储游戏记录
-            statistics: {
-              totalGames: 0,
-              totalScore: 0,
-              wins: 0,
-              losses: 0,
-              draws: 0,
-              winRate: 0,
-              netScore: 0
-            },
-            gamemate: [], // 游戏伙伴数组
-            createTime: new Date(),
-            updateTime: new Date()
-          }
-        })
-      }
+      // 服务端保存成功后更新全局用户信息。
+      getApp().globalData.userInfo = userInfo
 
       wx.showToast({
         title: '保存成功',

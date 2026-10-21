@@ -25,12 +25,13 @@
   </view>
   
   <!-- 历史记录列表 -->
+  <view wx:if="{{isSyncing}}">有房间正在同步个人历史，稍后会自动补齐</view>
   <!-- 表头（固定显示，不滚动） -->
   <view class="history-header">
     <view class="header-item time-header">时间</view>
     <view class="header-item">房间号</view>
     <view class="header-item">结果</view>
-    <view class="header-item">得分</view>
+    <view class="header-item">倍率分</view>
     <view class="header-item">详情</view>
   </view>
 

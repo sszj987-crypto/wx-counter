@@ -11,6 +11,7 @@
       <text class="rate-value">{{rate || 1}}</text>
       <text>倍</text>
     </view>
+    <view wx:if="{{isSyncing}}">结算结果已确认，个人历史同步中</view>
   </view>
 
   <!-- 结算表格 -->
